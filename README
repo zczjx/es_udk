@@ -1,0 +1,6 @@
+es_udi is short for Embeded System Unified Development Interface
+
+es_udi unify mutiple Embeded operating system base opensource package and system
+API, the Programmer can use it to construct your application in a high abstract
+layer, use the high level abstruct API and class and dont't care the platform 
+differences.
