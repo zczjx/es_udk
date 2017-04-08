@@ -1,0 +1,6 @@
+config BR2_PACKAGE_ES_UDK
+	bool "embeded system unify development kit"
+	help
+	  the embeded system unify development kit supply unify api for all 
+	  kinds of devices and 3d-party opensource packages for application
+	  develop

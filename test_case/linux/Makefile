@@ -20,7 +20,8 @@ ROOT =
 
 # List of source files
 SRCS = 				v4l2_camera_live_play.c \
-				fb_param_test.c
+				fb_param_test.c \
+				camera_param_test.c
 					
 # Following lines are the common description for all projects.
 # Do NOT modify anything, unless you know what you are doing.
