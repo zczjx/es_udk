@@ -36,6 +36,7 @@
 #define COUNT_OF_V4L2_REQ_BUFFER (4)
 #define DEFAULT_V4L2_RESOLUTION_X (480)
 #define DEFAULT_V4L2_RESOLUTION_Y (720)
+#define V4L2_CAMERA_MAX_CTRL (32)
 
 
 /*internal self define type*/
@@ -76,6 +77,8 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base);
 static es_error_t v4l2_cmr_close(struct video_base *base);
 static es_error_t v4l2_cmr_start(struct video_base *base);
 static es_error_t v4l2_cmr_stop(struct video_base *base);
+static es_error_t v4l2_cmr_get_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
+static es_error_t v4l2_cmr_set_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_media_frame *vframe);
 static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_frame *vframe);
 
@@ -491,6 +494,8 @@ static struct video_base v4l2_cmr = {
 	.video_close = v4l2_cmr_close,
 	.video_start = v4l2_cmr_start,
 	.video_stop = v4l2_cmr_stop,
+	.video_get_ctrl = v4l2_cmr_get_ctrl,
+	.video_set_ctrl = v4l2_cmr_set_ctrl,
 	.video_send_frame = v4l2_cmr_send_frame,
 	.video_recv_frame = v4l2_cmr_recv_frame,
 };
@@ -513,7 +518,7 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
     es_error_t ret;
 	int err;
 	struct _v4l2_priv_attr *priv_attr = NULL;
-	struct es_video_attr public_attr;
+	struct es_video_attr *public_attr = NULL;
 	int fd;
 
 	if((NULL == path) || (NULL == base))
@@ -522,13 +527,15 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
 		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
         return ES_INVALID_PARAM;
 	}
+	public_attr = &base->attr;
 	priv_attr = malloc(sizeof(struct _v4l2_priv_attr));
 	if(NULL == priv_attr)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] no memory now!\n" , __FUNCTION__);
-        return ES_FAIL;
+		return ES_FAIL;
 	}
+	
     fd = open(path, O_RDWR);
     if (fd < 0)
     {
@@ -545,11 +552,11 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
 		ES_PRINTF("[%s] Error opening device %s: unable to query device.\n" , __FUNCTION__, path);
     	goto ERR_EXIT;
     }
-	public_attr.property = ES_VIDEO_PROPERTY_UNKNOW;
-	public_attr.bpp = 0;
+	public_attr->property = ES_VIDEO_PROPERTY_UNKNOW;
+	public_attr->bpp = 0;
     if ((priv_attr->_v4l2_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE))
     {
-		public_attr.property |= ES_VIDEO_PROPERTY_CAPTURE;
+		public_attr->property |= ES_VIDEO_PROPERTY_CAPTURE;
     }
 	else
 	{
@@ -557,14 +564,14 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
 		ES_PRINTF("[%s] %s is not a video capture device\n" , __FUNCTION__, path);
         goto ERR_EXIT;
 	}
-	ret = set_v4l2_fmt_attr(fd, priv_attr, &public_attr);
+	ret = set_v4l2_fmt_attr(fd, priv_attr, public_attr);
 	if(ES_SUCCESS != ret)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] v4l2 set format error!\n" , __FUNCTION__);
         goto ERR_EXIT;
 	}
-	ret = set_v4l2_buf_attr(fd, priv_attr, &public_attr);
+	ret = set_v4l2_buf_attr(fd, priv_attr, public_attr);
 	if(ES_SUCCESS != ret)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
@@ -574,7 +581,41 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
 	base->sub_class = ES_VIDEO_CLASS_CAMERA;
 	base->path_name = path;
 	base->fd = fd;
-	memcpy(&base->attr, &public_attr, sizeof(struct es_video_attr));
+
+	/*query all v4l2 ctrl*/
+
+	public_attr->p_ctrl_list_head = NULL;
+	INIT_ES_LIST_HEAD(&base->ctrl_list_head);
+	public_attr->p_ctrl_list_head = &base->ctrl_list_head;
+	struct v4l2_queryctrl qctrl;
+	memset(&qctrl, 0, sizeof(struct v4l2_queryctrl));
+	for(i = 0; i < V4L2_CAMERA_MAX_CTRL; i++)
+	{
+		qctrl.id = V4L2_CID_BASE + i;
+		err = ioctl(fd, VIDIOC_QUERYCTRL, &qctrl);
+		if(0 == err)
+		{
+			struct es_video_ctrl *tmp_ctrl = NULL;
+			tmp_ctrl = malloc(sizeof(struct es_video_ctrl));
+			if(NULL == tmp_ctrl)
+			{
+				ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+				ES_PRINTF("[%s] no memory now!\n" , __FUNCTION__);
+        		return ES_FAIL;
+			}
+			INIT_ES_LIST_HEAD(&tmp_ctrl->ctrl_entry);
+			tmp_ctrl->ctrl_id = qctrl.id;
+			memcpy(tmp_ctrl->name, qctrl.name, sizeof(unsigned char) * 32);
+			tmp_ctrl->name[31] = '\0';
+			tmp_ctrl->minimum = qctrl.minimum;
+			tmp_ctrl->maximum = qctrl.maximum;
+			tmp_ctrl->step = qctrl.step;
+			tmp_ctrl->default_val = qctrl.default_value;
+			tmp_ctrl->status = qctrl.flags;
+			es_list_add_tail(&tmp_ctrl->ctrl_entry, public_attr->p_ctrl_list_head);
+		}
+	}
+	// memcpy(&base->attr, &public_attr, sizeof(struct es_video_attr));
 	INIT_ES_LIST_HEAD(&base->entry);
 	INIT_ES_LIST_HEAD(&base->video_buf_head);
 	base->priv = priv_attr;
@@ -877,6 +918,109 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_f
 		vframe->buf_start_addr = NULL;
 		return ES_FAIL;
 	}
+}
+
+/*******************************************************************************
+* @function name: v4l2_cmr_get_ctrl    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+static es_error_t v4l2_cmr_get_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd)
+{
+	es_error_t ret = ES_SUCCESS;
+	int err;
+
+	struct es_video_ctrl *cur_ctrl = NULL;
+	struct es_video_ctrl *tmp_ctrl = NULL;
+	es_list_for_each_entry_safe(cur_ctrl, tmp_ctrl, &base->ctrl_list_head, ctrl_entry)
+	{
+		if(cur_ctrl->ctrl_id == cmd->ctrl_id)
+		{
+			struct v4l2_control tmp_cmd;
+			tmp_cmd.id = cmd->ctrl_id;
+
+			err = ioctl(base->fd, VIDIOC_G_CTRL, &tmp_cmd);
+			if(0 == err)
+			{
+				cmd->ctrl_id = tmp_cmd.id;
+				cmd->current_val = tmp_cmd.value;
+				ret = ES_SUCCESS;
+				return ret;
+			}
+			else
+			{
+				ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+				ES_PRINTF("[%s] VIDIOC_G_CTRL fail!\n" , __FUNCTION__);
+				ret = ES_FAIL;
+				return ret;
+			}
+		}
+			
+	}
+	ret = ES_FAIL;
+	return ret;
+}
+/*******************************************************************************
+* @function name: v4l2_cmr_set_ctrl    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+static es_error_t v4l2_cmr_set_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd)
+{
+	es_error_t ret = ES_SUCCESS;
+	int err;
+
+	struct es_video_ctrl *cur_ctrl = NULL;
+	struct es_video_ctrl *tmp_ctrl = NULL;
+	es_list_for_each_entry_safe(cur_ctrl, tmp_ctrl, &base->ctrl_list_head, ctrl_entry)
+	{
+		if(cur_ctrl->ctrl_id == cmd->ctrl_id)
+		{
+			struct v4l2_control tmp_cmd;
+			if(cmd->current_val > cur_ctrl->maximum)
+			{
+				cmd->current_val = cur_ctrl->maximum;
+			}
+			if(cmd->current_val < cur_ctrl->minimum)
+			{
+				cmd->current_val = cur_ctrl->minimum;
+			}
+			tmp_cmd.id = cmd->ctrl_id;
+			tmp_cmd.value = cmd->current_val;
+			// ES_PRINTF("tmp_cmd.id: 0x%x,  tmp_cmd.value: %d\n", tmp_cmd.id, tmp_cmd.value);
+			err = ioctl(base->fd, VIDIOC_S_CTRL, &tmp_cmd);
+			if(0 == err)
+			{
+				ret = ES_SUCCESS;
+				return ret;
+			}
+			else
+			{
+				ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+				ES_PRINTF("[%s] VIDIOC_S_CTRL fail!\n" , __FUNCTION__);
+				ES_PRINTF("err %d\n",err);
+				ret = ES_FAIL;
+				return ret;
+			}
+		}
+			
+	}
+	ret = ES_FAIL;
+	return ret;
 }
 
 /*******************************************************************************

@@ -57,6 +57,7 @@ static void inline do_video_base_instantiate(struct video_base *instance,
 	struct video_base *der_class)
 {
 	instance->attr.property = ES_VIDEO_PROPERTY_UNKNOW;
+	INIT_ES_LIST_HEAD(&instance->ctrl_list_head);
 	INIT_ES_LIST_HEAD(&instance->entry);
 	INIT_ES_LIST_HEAD(&instance->video_buf_head);
 	instance->priv = NULL;
@@ -65,6 +66,8 @@ static void inline do_video_base_instantiate(struct video_base *instance,
 	instance->video_close = der_class->video_close;
 	instance->video_start = der_class->video_start;
 	instance->video_stop = der_class->video_stop;
+	instance->video_get_ctrl = der_class->video_get_ctrl;
+	instance->video_set_ctrl = der_class->video_set_ctrl;
 	instance->video_send_frame = der_class->video_send_frame;
 	instance->video_recv_frame = der_class->video_recv_frame;
 }
@@ -511,6 +514,82 @@ es_error_t es_video_sync_send_frame(es_video_hld v_hld,
 		ret = ES_INVALID_PARAM;
 	}
 	return ret;
+}
+
+/*******************************************************************************
+* @function name: es_video_get_ctrl    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+es_error_t es_video_get_ctrl(es_video_hld v_hld, struct es_video_ctrl_cmd *cmd)
+{
+	es_error_t ret = ES_SUCCESS;
+	struct video_base *pvb = (struct video_base *) v_hld;
+
+	if((NULL == pvb) || (NULL == cmd))
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
+		return ES_INVALID_PARAM;
+	}
+	if(NULL != pvb->video_get_ctrl)
+	{
+		ret = pvb->video_get_ctrl(pvb, cmd);
+	}
+	else
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] ES_INVALID_PARAM!\n" , __FUNCTION__);
+		ret = ES_INVALID_PARAM;
+	}
+	return ret;
+	
+
+}
+
+/*******************************************************************************
+* @function name: es_video_set_ctrl    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+es_error_t es_video_set_ctrl(es_video_hld v_hld, struct es_video_ctrl_cmd *cmd)
+{
+	es_error_t ret = ES_SUCCESS;
+	struct video_base *pvb = (struct video_base *) v_hld;
+
+	if((NULL == pvb) || (NULL == cmd))
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
+		return ES_INVALID_PARAM;
+	}
+	if(NULL != pvb->video_set_ctrl)
+	{
+		ret = pvb->video_set_ctrl(pvb, cmd);
+	}
+	else
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] ES_INVALID_PARAM!\n" , __FUNCTION__);
+		ret = ES_INVALID_PARAM;
+	}
+	return ret;
+
+
 }
 
 

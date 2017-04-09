@@ -313,7 +313,7 @@ static es_error_t common_yuyv_to_rgb(struct es_media_frame *src_frame, struct es
 		goto end; 
 	}  
 	sws_scale(convert_ctx, src_data, src_linesize, 0, src_h, dst_data, dst_linesize);  
-	ES_PRINTF("Finish process 1 frame \n");
+	// ES_PRINTF("Finish process 1 frame \n");
 
 	dst_frame->attr.pix_frame.x_resolution = dst_w;
 	dst_frame->attr.pix_frame.y_resolution = dst_h;

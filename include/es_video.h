@@ -54,12 +54,25 @@ typedef struct es_video_resolution{
     unsigned long y;
 } es_video_resolution;
 
+typedef struct es_video_ctrl{
+	unsigned long ctrl_id; //ro
+	unsigned char name[32];	//ro
+	long minimum; //ro
+	long maximum; //ro
+	long step; //ro
+	long default_val; //ro
+	unsigned long status; //ro
+	struct es_list_head ctrl_entry;
+} es_video_ctrl;
+
+
 typedef struct es_video_attr{
 	unsigned long property;  //ro
 	es_pix_fmt pix_fomat; //ro
 	es_video_compress_fmt video_compress_fmt; //ro
 	unsigned long bpp; //ro bits per pixel
 	struct es_video_resolution resolution; //rw
+	struct es_list_head *p_ctrl_list_head;
 } es_video_attr;
 
 
@@ -98,6 +111,15 @@ extern es_error_t es_video_async_send_frame(es_video_hld v_hld,
 
 extern es_error_t es_video_sync_send_frame(es_video_hld v_hld, 
 	struct es_media_frame *vframe);
+
+typedef struct es_video_ctrl_cmd{
+	unsigned long ctrl_id; 
+	long current_val; //rw
+} es_video_ctrl_cmd;
+
+extern es_error_t es_video_get_ctrl(es_video_hld v_hld, struct es_video_ctrl_cmd *cmd);
+
+extern es_error_t es_video_set_ctrl(es_video_hld v_hld, struct es_video_ctrl_cmd *cmd);
 
 
 

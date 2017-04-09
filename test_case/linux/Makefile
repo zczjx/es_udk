@@ -19,9 +19,10 @@
 ROOT = 
 
 # List of source files
-SRCS = 				v4l2_camera_live_play.c \
+SRCS = 				camera_live_play.c \
+				camera_ctrl_play.c \
 				fb_param_test.c \
-				camera_param_test.c
+				v4l2_camera_param_test.c
 					
 # Following lines are the common description for all projects.
 # Do NOT modify anything, unless you know what you are doing.
@@ -38,7 +39,7 @@ all :${OBJS}
 
 %:%.c
 	echo ${CFLAGS}
-	${CC} -fPIC ${CFLAGS} -L  ${TOPDIR}  -o $@  $< ${LDFLAGS} -les_udk
+	${CC} -fPIC ${CFLAGS} -L  ${TOPDIR}  -o $@  $< ${LDFLAGS} -les_udk -lpthread
 	
 clean :
 	  rm -f ${OBJS}
