@@ -77,6 +77,8 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base);
 static es_error_t v4l2_cmr_close(struct video_base *base);
 static es_error_t v4l2_cmr_start(struct video_base *base);
 static es_error_t v4l2_cmr_stop(struct video_base *base);
+static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_attr *public_attr);
+static es_error_t v4l2_cmr_set_attr(struct video_base *base, struct es_video_attr *public_attr);
 static es_error_t v4l2_cmr_get_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 static es_error_t v4l2_cmr_set_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_media_frame *vframe);
@@ -225,6 +227,82 @@ static inline unsigned long compress_video_fmt_unify_trans(__u32 v4l2_fmt)
 
 		default:
 			ret = ES_VIDEO_COMPRESS_FMT_UNKNOW;
+			break;
+	}
+	return ret;
+}
+
+
+/*******************************************************************************
+* @function name: es_video_to_v4l2_pixel_fmt    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+static inline unsigned long es_video_to_v4l2_pixel_fmt(__u32 es_video_fmt)
+{
+	unsigned long ret = ES_PIX_FMT_UNKNOW;
+	
+	switch(es_video_fmt)
+	{
+		case ES_PIX_FMT_YUYV:
+			ret = V4L2_PIX_FMT_YUYV;
+			break;
+
+		case ES_PIX_FMT_RGB332:
+			ret = V4L2_PIX_FMT_RGB332;
+			break;
+
+		case ES_PIX_FMT_RGB565:
+			ret = V4L2_PIX_FMT_RGB565;
+			break;
+			
+		case ES_PIX_FMT_RGB24:
+			ret = V4L2_PIX_FMT_RGB24;
+			break;
+
+		case ES_PIX_FMT_BGRA32:
+			ret = V4L2_PIX_FMT_RGB32;
+			break;
+		default:
+			ret = 0;
+			break;
+	}
+	return ret;
+}
+
+
+/*******************************************************************************
+* @function name: es_video_to_v4l2_compress_fmt    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+static inline unsigned long es_video_to_v4l2_compress_fmt(__u32 es_video_fmt)
+{
+	unsigned long ret = 0;
+	
+	switch(es_video_fmt)
+	{
+		/* compressed format*/
+		case ES_VIDEO_COMPRESS_FMT_MJPEG:
+			ret = V4L2_PIX_FMT_MJPEG;
+			break;
+
+		default:
+			ret = 0;
 			break;
 	}
 	return ret;
@@ -494,6 +572,8 @@ static struct video_base v4l2_cmr = {
 	.video_close = v4l2_cmr_close,
 	.video_start = v4l2_cmr_start,
 	.video_stop = v4l2_cmr_stop,
+	.video_get_attr = v4l2_cmr_get_attr,
+	.video_set_attr = v4l2_cmr_set_attr,
 	.video_get_ctrl = v4l2_cmr_get_ctrl,
 	.video_set_ctrl = v4l2_cmr_set_ctrl,
 	.video_send_frame = v4l2_cmr_send_frame,
@@ -1041,6 +1121,164 @@ es_error_t es_init_v4l2_camera(void)
 	
 	ret = video_base_register(&v4l2_cmr);
 	return ret;
+}
+
+static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_attr *public_attr)
+{
+	es_error_t ret = ES_SUCCESS;
+	int err, i;
+	unsigned long fps;
+	struct v4l2_format  v4l2_pix_fmt;
+	struct v4l2_capability v4l2_cap;
+	struct v4l2_streamparm streamparm;
+	
+	if((NULL == base) || (NULL == public_attr) )
+	{
+		ret = ES_FAIL;
+		return ret;
+	}
+
+	err = ioctl(base->fd, VIDIOC_QUERYCAP, &v4l2_cap);
+    if (err) 
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] Error opening device : unable to query device.\n" , __FUNCTION__);
+    	goto ERR_EXIT;
+    }
+    if (v4l2_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE)
+    {
+		public_attr->property &= ES_VIDEO_PROPERTY_CAPTURE;
+		public_attr->property |= ES_VIDEO_PROPERTY_CAPTURE;
+    }
+    /* enum and try format */
+    memset(&v4l2_pix_fmt, 0, sizeof(struct v4l2_format));
+    v4l2_pix_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    err = ioctl(base->fd, VIDIOC_G_FMT, &v4l2_pix_fmt); 
+    if (err) 
+    {
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] Unable to set format\n" , __FUNCTION__);
+        goto ERR_EXIT;        
+    }
+    public_attr->resolution.x = v4l2_pix_fmt.fmt.pix.width;
+    public_attr->resolution.y = v4l2_pix_fmt.fmt.pix.height;
+	if (is_support_pixel_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
+	{
+		public_attr->video_compress_fmt = ES_VIDEO_COMPRESS_FMT_UNKNOW;
+		public_attr->pix_fomat = pixel_fmt_unify_trans(v4l2_pix_fmt.fmt.pix.pixelformat);
+		public_attr->bpp = video_base_get_bpp(public_attr->pix_fomat);
+	}
+	else if(is_support_compress_video_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
+	{
+		public_attr->video_compress_fmt = compress_video_fmt_unify_trans(v4l2_pix_fmt.fmt.pix.pixelformat);
+		public_attr->pix_fomat = ES_PIX_FMT_UNKNOW;
+		public_attr->bpp = 0;
+	}
+	streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    err = ioctl(base->fd, VIDIOC_G_PARM, &streamparm);
+	if (err) 
+    {
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] Unable to VIDIOC_G_PARM\n" , __FUNCTION__);
+        goto ERR_EXIT;        
+    }
+	
+	fps = ceil(streamparm.parm.capture.timeperframe.denominator
+			/ streamparm.parm.capture.timeperframe.numerator);
+	public_attr->fps = fps;
+	
+	if(NULL == public_attr->p_ctrl_list_head)
+	{
+		struct v4l2_queryctrl qctrl;
+		INIT_ES_LIST_HEAD(&base->ctrl_list_head);
+		public_attr->p_ctrl_list_head = &base->ctrl_list_head;
+		memset(&qctrl, 0, sizeof(struct v4l2_queryctrl));
+		for(i = 0; i < V4L2_CAMERA_MAX_CTRL; i++)
+		{
+			qctrl.id = V4L2_CID_BASE + i;
+			err = ioctl(base->fd, VIDIOC_QUERYCTRL, &qctrl);
+			if(0 == err)
+			{
+				struct es_video_ctrl *tmp_ctrl = NULL;
+				tmp_ctrl = malloc(sizeof(struct es_video_ctrl));
+				if(NULL == tmp_ctrl)
+				{
+					ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+					ES_PRINTF("[%s] no memory now!\n" , __FUNCTION__);
+        			return ES_FAIL;
+				}
+				INIT_ES_LIST_HEAD(&tmp_ctrl->ctrl_entry);
+				tmp_ctrl->ctrl_id = qctrl.id;
+				memcpy(tmp_ctrl->name, qctrl.name, sizeof(unsigned char) * 32);
+				tmp_ctrl->name[31] = '\0';
+				tmp_ctrl->minimum = qctrl.minimum;
+				tmp_ctrl->maximum = qctrl.maximum;
+				tmp_ctrl->step = qctrl.step;
+				tmp_ctrl->default_val = qctrl.default_value;
+				tmp_ctrl->status = qctrl.flags;
+				es_list_add_tail(&tmp_ctrl->ctrl_entry, public_attr->p_ctrl_list_head);
+			}
+		}
+	}
+	ret = ES_SUCCESS;
+	return ret;
+ERR_EXIT:
+	return ES_FAIL;
+
+}
+static es_error_t v4l2_cmr_set_attr(struct video_base *base, struct es_video_attr *public_attr)
+{
+	es_error_t ret = ES_SUCCESS;
+	int err = 0;
+	
+	if((base->attr.pix_fomat != public_attr->pix_fomat)
+	|| (base->attr.video_compress_fmt != public_attr->video_compress_fmt)
+	|| (base->attr.resolution.x !=  public_attr->resolution.x)
+	|| (base->attr.resolution.y !=  public_attr->resolution.y))
+	{
+		struct v4l2_format  v4l2_pix_fmt;
+		memset(&v4l2_pix_fmt, 0, sizeof(struct v4l2_format));
+    	v4l2_pix_fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		err = ioctl(base->fd, VIDIOC_G_FMT, &v4l2_pix_fmt);
+		if (err) 
+    	{
+			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] Unable to VIDIOC_G_FMT\n" , __FUNCTION__);
+        	goto ERR_EXIT;        
+    	}
+		v4l2_pix_fmt.fmt.pix.width = public_attr->resolution.x;
+		v4l2_pix_fmt.fmt.pix.height = public_attr->resolution.y;
+		if(ES_PIX_FMT_UNKNOW != public_attr->pix_fomat)
+		{
+		 	v4l2_pix_fmt.fmt.pix.pixelformat = es_video_to_v4l2_pixel_fmt(public_attr->pix_fomat);
+		}
+		else
+		{
+			v4l2_pix_fmt.fmt.pix.pixelformat = es_video_to_v4l2_compress_fmt(public_attr->pix_fomat);
+		}
+    	err = ioctl(base->fd, VIDIOC_S_FMT, &v4l2_pix_fmt); 
+	}
+
+	if(base->attr.fps != public_attr->fps)
+	{
+		struct v4l2_streamparm streamparm;
+
+		streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    	err = ioctl(base->fd, VIDIOC_G_PARM, &streamparm);
+		if (err) 
+    	{
+			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] Unable to VIDIOC_G_PARM\n" , __FUNCTION__);
+        	goto ERR_EXIT;        
+    	}
+		streamparm.parm.capture.timeperframe.denominator = public_attr->fps;
+		streamparm.parm.capture.timeperframe.numerator = 1;
+		err = ioctl(base->fd, VIDIOC_S_PARM, &streamparm);
+	}
+
+	return ret;
+ERR_EXIT:
+	return ES_FAIL;
 }
 
 

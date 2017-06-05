@@ -21,6 +21,7 @@
 
 
 #include<stdio.h>
+#include <time.h>
 #include<es_video.h>
 #include<es_display.h>
 
@@ -36,6 +37,10 @@ int main(int argc, char *argv[])
 	es_video_hld v_hld = NULL;
 	struct es_video_attr v_attr;
 	struct es_media_frame *vframe = NULL;
+	struct timespec tp;
+	static long pre_time = 0;
+	static long curr_time = 0;
+	static long fps = 0;
 
 	es_disp_hld d_hld = NULL;
 	struct es_display_attr d_attr;
@@ -82,17 +87,29 @@ int main(int argc, char *argv[])
 	int j = 0;
 	while(1)
 	{
-		es_common_delay(10000);
+		//es_common_delay(10000); 
 		vframe = es_media_frame_create();
+		clock_gettime(CLOCK_MONOTONIC, &tp);
 		ret = es_video_sync_recv_frame(v_hld, vframe);
 		check_ret(ret, "es_video_sync_recv_frame");
-		
+		// printf("tp.tv_sec: %d, tp.tv_nsec: %d \n", tp.tv_sec, tp.tv_nsec);
+		curr_time = tp.tv_sec;
+		fps++;
+		if((curr_time - pre_time) >= 1)
+		{
+			printf("current fps is %d \n", fps);
+			pre_time = curr_time;
+			fps = 0;
+		}
+		// es_media_frame_destroy(vframe);
+		/***********
 		printf("vframe->type : %d \n", vframe->type);
 		printf("vframe->attr.pix_frame.pix_fmt  : %d \n", vframe->attr.pix_frame.pix_fmt );
 		printf("vframe->attr.pix_frame.bpp : %d \n", vframe->attr.pix_frame.bpp);
 		printf("vframe->attr.pix_frame.x_resolution : %d \n", vframe->attr.pix_frame.x_resolution);
 		printf("vframe->attr.pix_frame.y_resolution : %d \n", vframe->attr.pix_frame.y_resolution);
 		printf("vframe->buf_size  : %d \n", vframe->buf_size);
+		 *************/
 		if(vframe->attr.pix_frame.pix_fmt != d_attr.pix_fmt)
 		{
 			struct es_media_frame *dframe = NULL;
@@ -117,7 +134,8 @@ int main(int argc, char *argv[])
 			es_display_sync_flush(d_hld, vframe);
 			es_media_frame_destroy(vframe);
 		}
-	
+		
+		
 	}
 	
 	return 0;

@@ -287,6 +287,10 @@ es_error_t es_video_get_attr(es_video_hld v_hld, struct es_video_attr *v_attr)
 		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
 		return ES_INVALID_PARAM;
 	}
+	if(pvb->video_get_attr)
+	{
+		pvb->video_get_attr(pvb, &pvb->attr);
+	}
 	memcpy(v_attr, &pvb->attr, sizeof(struct es_video_attr));
 	ret = ES_SUCCESS;
 	return ret;
@@ -314,7 +318,6 @@ es_error_t es_video_set_attr(es_video_hld v_hld, struct es_video_attr *v_attr)
 		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
 		return ES_INVALID_PARAM;
 	}
-	memcpy(&pvb->attr, v_attr, sizeof(struct es_video_attr));
 	if((NULL != pvb->video_start) && (NULL != pvb->video_stop))
 	{	
 		ret = pvb->video_stop(pvb);
@@ -323,6 +326,10 @@ es_error_t es_video_set_attr(es_video_hld v_hld, struct es_video_attr *v_attr)
 			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 			ES_PRINTF("[%s] video stop fail!\n" , __FUNCTION__);
 			return ret;
+		}
+		if(pvb->video_set_attr)
+		{
+			pvb->video_set_attr(pvb, v_attr);
 		}
 		es_common_delay(100);
 		ret = pvb->video_start(pvb);

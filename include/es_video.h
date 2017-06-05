@@ -68,11 +68,12 @@ typedef struct es_video_ctrl{
 
 typedef struct es_video_attr{
 	unsigned long property;  //ro
-	es_pix_fmt pix_fomat; //ro
-	es_video_compress_fmt video_compress_fmt; //ro
-	unsigned long bpp; //ro bits per pixel
+	es_pix_fmt pix_fomat; //rw
+	es_video_compress_fmt video_compress_fmt; //rw
 	struct es_video_resolution resolution; //rw
-	struct es_list_head *p_ctrl_list_head;
+	unsigned long bpp; //ro  bits per pixel
+	unsigned long fps; //rw  frames per second
+	struct es_list_head *p_ctrl_list_head; //ro
 } es_video_attr;
 
 
