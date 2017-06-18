@@ -19,7 +19,7 @@
 * @comment           
 *******************************************************************************/
 #include <es_display.h>
-#include <es_media_frame.h>
+#include <es_data_frame.h>
 #include "display_base.h"
 
 #include <linux/fb.h>
@@ -90,7 +90,7 @@ static inline es_pix_fmt get_fb_pix_fmt(struct fb_var_screeninfo *fb_var_info)
 *******************************************************************************/
 static inline es_error_t do_flush_rgb_frame(struct fb_priv_attr *priv_attr, 
 	struct es_display_attr *public_attr, 
-	struct es_media_frame *dframe)
+	struct es_data_frame *dframe)
 	
 {
 	unsigned long flush_line_bytes;
@@ -105,7 +105,7 @@ static inline es_error_t do_flush_rgb_frame(struct fb_priv_attr *priv_attr,
 	
 	
 	es_error_t ret = ES_SUCCESS;
-	struct es_pixel_frame_attr *pix_frame_attr = &dframe->attr.pix_frame;
+	struct es_pixel_frame_attr *pix_frame_attr = &dframe->frame_attr.pix_frame;
 
 	if((NULL == priv_attr)
 	|| (NULL == public_attr)
@@ -118,14 +118,14 @@ static inline es_error_t do_flush_rgb_frame(struct fb_priv_attr *priv_attr,
 	}
 
 	
-	if(pix_frame_attr->bpp != public_attr->bpp)
+	if(pix_frame_attr->bits_per_pix != public_attr->bits_per_pix)
 	{	
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] frame's bpp is not compatible with display screen!\n" , __FUNCTION__);
 		return ES_INVALID_PARAM;
 	}
-	frame_line_bytes = pix_frame_attr->x_resolution * (pix_frame_attr->bpp / 8);
-	fb_line_bytes = public_attr->x_resolution * (public_attr->bpp / 8);
+	frame_line_bytes = pix_frame_attr->x_resolution * (pix_frame_attr->bits_per_pix >> 3);
+	fb_line_bytes = public_attr->x_resolution * (public_attr->bits_per_pix >> 3);
 	flush_line_bytes = min(frame_line_bytes, fb_line_bytes);
 	flush_col_nr = min(pix_frame_attr->y_resolution, public_attr->y_resolution);
 	fb_dst_addr = priv_attr->fbmem;
@@ -148,8 +148,8 @@ static es_error_t fb_open(const char *path, struct display_base *base);
 static es_error_t fb_close(struct display_base *base);
 static es_error_t fb_on(struct display_base *base);
 static es_error_t fb_off(struct display_base *base);
-static es_error_t fb_flush(struct display_base *base, struct es_media_frame *dframe);
-static es_error_t fb_grab(struct display_base *base, struct es_media_frame **dframe);
+static es_error_t fb_flush(struct display_base *base, struct es_data_frame *dframe);
+static es_error_t fb_grab(struct display_base *base, struct es_data_frame **dframe);
 
 
 
@@ -232,7 +232,7 @@ static es_error_t fb_open(const char *path, struct display_base *base)
 	
 	public_attr.x_resolution = fb_var_info.xres;
 	public_attr.y_resolution = fb_var_info.yres;
-	public_attr.bpp = fb_var_info.bits_per_pixel;
+	public_attr.bits_per_pix = fb_var_info.bits_per_pixel;
 	public_attr.pix_fmt = get_fb_pix_fmt(&fb_var_info);
 
 	base->sub_class = ES_DISPLAY_CLASS_FB;
@@ -330,10 +330,9 @@ static es_error_t fb_off(struct display_base *base)
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t fb_flush(struct display_base *base, struct es_media_frame *dframe)
+static es_error_t fb_flush(struct display_base *base, struct es_data_frame *dframe)
 {
 	es_error_t ret = ES_SUCCESS;
-	int err;
 	struct fb_priv_attr *priv_attr = base->priv;
 	struct es_display_attr *public_attr = &base->attr;
 
@@ -346,7 +345,7 @@ static es_error_t fb_flush(struct display_base *base, struct es_media_frame *dfr
 		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
 		return ES_INVALID_PARAM;
 	}
-	if(public_attr->pix_fmt == dframe->attr.pix_frame.pix_fmt)
+	if(public_attr->pix_fmt == dframe->frame_attr.pix_frame.pix_fmt)
 	{
 		ret = do_flush_rgb_frame(priv_attr, public_attr, dframe);
 	}
@@ -371,7 +370,7 @@ static es_error_t fb_flush(struct display_base *base, struct es_media_frame *dfr
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t fb_grab(struct display_base *base, struct es_media_frame **dframe)
+static es_error_t fb_grab(struct display_base *base, struct es_data_frame **dframe)
 {
 	es_error_t ret = ES_SUCCESS;
 

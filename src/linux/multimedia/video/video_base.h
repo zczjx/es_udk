@@ -56,8 +56,8 @@ typedef struct video_base{
 	es_error_t (*video_set_attr)(struct video_base *base, struct es_video_attr *public_attr);
 	es_error_t (*video_get_ctrl)(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 	es_error_t (*video_set_ctrl)(struct video_base *base, struct es_video_ctrl_cmd *cmd);
-	es_error_t (*video_send_frame)(struct video_base *base, struct es_media_frame *vframe);
-	es_error_t (*video_recv_frame)(struct video_base *base, struct es_media_frame *vframe);
+	es_error_t (*video_send_frame)(struct video_base *base, struct es_data_frame *vframe);
+	es_error_t (*video_recv_frame)(struct video_base *base, struct es_data_frame *vframe);
 } video_base;
 
 
@@ -175,44 +175,6 @@ static inline void video_buf_destroy(struct video_buf * pv)
 	pv = NULL;
 }
 
-/*******************************************************************************
-* @function name: video_base_get_bpp    
-*                
-* @brief:          
-*                
-* @param:        
-*                
-*                
-* @return:        
-*                
-* @comment:        
-*******************************************************************************/
-// bits per pixel list
-static unsigned long bpp_list[] = {
-	[ES_PIX_FMT_UNKNOW] = 0,
-	[ES_PIX_FMT_RGB332] = 8,
-	[ES_PIX_FMT_RGB565] = 16,
-	[ES_PIX_FMT_RGB24] = 24,
-	[ES_PIX_FMT_BGRA32] = 32,
-	
-	[ES_PIX_FMT_YUYV] = 16,
-};
-
-static inline unsigned long video_base_get_bpp(es_pix_fmt pix_fomat)
-{
-	unsigned long ret_bpp = 0;
-
-	if( (pix_fomat >= ES_PIX_FMT_NR)
-	|| (pix_fomat <= ES_PIX_FMT_UNKNOW) )
-	{
-		ret_bpp = 0;
-	}
-	else
-	{
-		ret_bpp = bpp_list[pix_fomat];
-	}
-	return ret_bpp;
-}
 
 
 #endif /* ifndef _VIDEO_BASE_H_.2016-11-11 21:28:59 zcz */

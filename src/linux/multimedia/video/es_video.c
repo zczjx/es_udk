@@ -18,7 +18,6 @@
 *    
 * @comment           
 *******************************************************************************/
-#define ES_DEBUG 1
 #include <es_common.h>
 #include <es_video.h>
 
@@ -444,7 +443,7 @@ es_error_t es_video_async_recv_frame(es_video_hld v_hld,
 * @comment:        
 *******************************************************************************/
 es_error_t es_video_sync_recv_frame(es_video_hld v_hld, 
-	struct es_media_frame *vframe)
+	struct es_data_frame *vframe)
 {
 	es_error_t ret = ES_SUCCESS;
 	struct video_base *pvb = (struct video_base *) v_hld;
@@ -479,7 +478,7 @@ es_error_t es_video_sync_recv_frame(es_video_hld v_hld,
 * @comment:        
 *******************************************************************************/
 es_error_t es_video_async_send_frame(es_video_hld v_hld, 
-	struct es_media_frame *vframe, 
+	struct es_data_frame *vframe, 
 	video_callback vcb, 
 	void *arg)
 {
@@ -501,7 +500,7 @@ es_error_t es_video_async_send_frame(es_video_hld v_hld,
 * @comment:        
 *******************************************************************************/
 es_error_t es_video_sync_send_frame(es_video_hld v_hld, 
-	struct es_media_frame *vframe)
+	struct es_data_frame *vframe)
 {
 	es_error_t ret = ES_SUCCESS;
 	struct video_base *pvb = (struct video_base *) v_hld;

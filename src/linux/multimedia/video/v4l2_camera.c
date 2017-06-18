@@ -21,7 +21,7 @@
 #include <es_common.h>
 #include <es_video.h>
 #include "video_base.h"
-#include <es_media_frame.h>
+#include <es_data_frame.h>
 
 
 #include <linux/videodev2.h>
@@ -81,8 +81,8 @@ static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_att
 static es_error_t v4l2_cmr_set_attr(struct video_base *base, struct es_video_attr *public_attr);
 static es_error_t v4l2_cmr_get_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 static es_error_t v4l2_cmr_set_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
-static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_media_frame *vframe);
-static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_frame *vframe);
+static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_data_frame *vframe);
+static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_frame *vframe);
 
 /*internal function */
 
@@ -156,158 +156,6 @@ static inline bool is_support_compress_video_fmt(int video_fmt)
     return es_false;
 }
 
-
-
-/*******************************************************************************
-* @function name: pixel_fmt_unify_trans    
-*                
-* @brief:          
-*                
-* @param:        
-*                
-*                
-* @return:        
-*                
-* @comment:        
-*******************************************************************************/
-static inline unsigned long pixel_fmt_unify_trans(__u32 v4l2_fmt)
-{
-	unsigned long ret = ES_PIX_FMT_UNKNOW;
-	
-	switch(v4l2_fmt)
-	{
-		case V4L2_PIX_FMT_YUYV:
-			ret = ES_PIX_FMT_YUYV;
-			break;
-
-		case V4L2_PIX_FMT_RGB332:
-			ret = ES_PIX_FMT_RGB332;
-			break;
-
-		case V4L2_PIX_FMT_RGB565:
-			ret = ES_PIX_FMT_RGB565;
-			break;
-			
-		case V4L2_PIX_FMT_RGB24:
-			ret = ES_PIX_FMT_RGB24;
-			break;
-
-		case V4L2_PIX_FMT_RGB32:
-			ret = ES_PIX_FMT_BGRA32;
-			break;
-			
-		default:
-			ret = ES_PIX_FMT_UNKNOW;
-			break;
-	}
-	return ret;
-}
-/*******************************************************************************
-* @function name: compress_video_fmt_unify_trans    
-*                
-* @brief:          
-*                
-* @param:        
-*                
-*                
-* @return:        
-*                
-* @comment:        
-*******************************************************************************/
-static inline unsigned long compress_video_fmt_unify_trans(__u32 v4l2_fmt)
-{
-	unsigned long ret = ES_VIDEO_COMPRESS_FMT_UNKNOW;
-	
-	switch(v4l2_fmt)
-	{
-		/* compressed format*/
-		case V4L2_PIX_FMT_MJPEG:
-			ret = ES_VIDEO_COMPRESS_FMT_MJPEG;
-			break;
-
-		default:
-			ret = ES_VIDEO_COMPRESS_FMT_UNKNOW;
-			break;
-	}
-	return ret;
-}
-
-
-/*******************************************************************************
-* @function name: es_video_to_v4l2_pixel_fmt    
-*                
-* @brief:          
-*                
-* @param:        
-*                
-*                
-* @return:        
-*                
-* @comment:        
-*******************************************************************************/
-static inline unsigned long es_video_to_v4l2_pixel_fmt(__u32 es_video_fmt)
-{
-	unsigned long ret = ES_PIX_FMT_UNKNOW;
-	
-	switch(es_video_fmt)
-	{
-		case ES_PIX_FMT_YUYV:
-			ret = V4L2_PIX_FMT_YUYV;
-			break;
-
-		case ES_PIX_FMT_RGB332:
-			ret = V4L2_PIX_FMT_RGB332;
-			break;
-
-		case ES_PIX_FMT_RGB565:
-			ret = V4L2_PIX_FMT_RGB565;
-			break;
-			
-		case ES_PIX_FMT_RGB24:
-			ret = V4L2_PIX_FMT_RGB24;
-			break;
-
-		case ES_PIX_FMT_BGRA32:
-			ret = V4L2_PIX_FMT_RGB32;
-			break;
-		default:
-			ret = 0;
-			break;
-	}
-	return ret;
-}
-
-
-/*******************************************************************************
-* @function name: es_video_to_v4l2_compress_fmt    
-*                
-* @brief:          
-*                
-* @param:        
-*                
-*                
-* @return:        
-*                
-* @comment:        
-*******************************************************************************/
-static inline unsigned long es_video_to_v4l2_compress_fmt(__u32 es_video_fmt)
-{
-	unsigned long ret = 0;
-	
-	switch(es_video_fmt)
-	{
-		/* compressed format*/
-		case ES_VIDEO_COMPRESS_FMT_MJPEG:
-			ret = V4L2_PIX_FMT_MJPEG;
-			break;
-
-		default:
-			ret = 0;
-			break;
-	}
-	return ret;
-}
-
 /*******************************************************************************
 * @function name: set_v4l2_fmt_attr    
 *                
@@ -331,28 +179,28 @@ static inline es_error_t set_v4l2_fmt_attr(int fd, struct _v4l2_priv_attr *priv_
 	memset(&fmt_dsc, 0, sizeof(struct v4l2_fmtdesc));
 	fmt_dsc.index = 0;
 	fmt_dsc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-	public_attr->pix_fomat = ES_PIX_FMT_UNKNOW;
-	public_attr->bpp = 0;
+	public_attr->dat_fmt.pix_fmt = ES_PIX_FMT_UNKNOW;
+	public_attr->bits_per_pix = 0;
 	while ((err = ioctl(fd, VIDIOC_ENUM_FMT, &fmt_dsc)) == 0) 
 	{
         if (is_support_pixel_fmt(fmt_dsc.pixelformat))
         {
-			public_attr->video_compress_fmt = ES_VIDEO_COMPRESS_FMT_UNKNOW;
-			public_attr->pix_fomat = pixel_fmt_unify_trans(fmt_dsc.pixelformat);
-			public_attr->bpp = video_base_get_bpp(public_attr->pix_fomat);
+			public_attr->video_data_type = ES_VIDEO_DATA_TYPE_PIXEL_FRAME;
+			public_attr->dat_fmt.pix_fmt = v4l2_fmt_to_es_pix_fmt(fmt_dsc.pixelformat);
+			public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
             break;
         }
 		else if(is_support_compress_video_fmt(fmt_dsc.pixelformat))
 		{
-			public_attr->video_compress_fmt = compress_video_fmt_unify_trans(fmt_dsc.pixelformat);
-			public_attr->pix_fomat = ES_PIX_FMT_UNKNOW;
-			public_attr->bpp = 0;
+			public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
+			public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(fmt_dsc.pixelformat);
+			public_attr->bits_per_pix = 0;
             break;
 		}
 		fmt_dsc.index++;
 	}
-    if ((ES_PIX_FMT_UNKNOW == public_attr->pix_fomat)
-	&& (ES_VIDEO_COMPRESS_FMT_UNKNOW == public_attr->video_compress_fmt))
+    if ((ES_PIX_FMT_UNKNOW == public_attr->dat_fmt.pix_fmt)
+	&& (ES_VIDEO_ENCODE_FMT_UNKNOW == public_attr->dat_fmt.video_encode_fmt))
     {
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] can not support the format of this device\n" , __FUNCTION__);
@@ -505,7 +353,7 @@ static inline es_error_t set_v4l2_buf_attr(int fd,
 	return ES_SUCCESS;
 }
 
-static inline es_error_t set_v4l2_es_media_frame(struct es_media_frame *out_frame, 
+static inline es_error_t set_v4l2_es_data_frame(struct es_data_frame *out_frame, 
 		struct video_buf *vbuf, 
 		struct es_video_attr *public_attr)
 {
@@ -515,50 +363,36 @@ static inline es_error_t set_v4l2_es_media_frame(struct es_media_frame *out_fram
 	{
 		return ES_FAIL;
 	}
-	if(ES_PIX_FMT_UNKNOW != public_attr->pix_fomat)
+	
+	if(ES_VIDEO_DATA_TYPE_PIXEL_FRAME == public_attr->video_data_type)
 	{
-		ret = es_media_frame_buf_alloc(out_frame, vbuf->buf_bytes);
+		ret = es_data_frame_buf_alloc(out_frame, DATA_FRAME_MEM_METHOD_MALLOC, vbuf->buf_bytes);
 		if(ES_SUCCESS == ret)
 		{
 			out_frame->type = ES_PIXEL_FRAME;
-			out_frame->attr.pix_frame.pix_fmt = public_attr->pix_fomat;
-			out_frame->attr.pix_frame.bpp = public_attr->bpp;
-			out_frame->attr.pix_frame.x_resolution= public_attr->resolution.x;
-			out_frame->attr.pix_frame.y_resolution= public_attr->resolution.y;
+			out_frame->mem_method = DATA_FRAME_MEM_METHOD_MALLOC;
+			out_frame->frame_attr.pix_frame.pix_fmt = public_attr->dat_fmt.pix_fmt;
+			out_frame->frame_attr.pix_frame.bits_per_pix = public_attr->bits_per_pix;
+			out_frame->frame_attr.pix_frame.x_resolution= public_attr->resolution.x;
+			out_frame->frame_attr.pix_frame.y_resolution= public_attr->resolution.y;
 			out_frame->buf_size = vbuf->buf_bytes;
 			memcpy(out_frame->buf_start_addr, vbuf->start_addr, out_frame->buf_size);
+			ret = ES_SUCCESS;
 		}
 		else
 		{
 			out_frame->type = ES_UNKNOW_FRAME;
 			out_frame->buf_size = 0;
 			out_frame->buf_start_addr = NULL;
+			ret = ES_FAIL;
 		}
-		return ret;
-	}
-	else if(ES_VIDEO_COMPRESS_FMT_UNKNOW != public_attr->video_compress_fmt)
-	{
-		ret = es_media_frame_buf_alloc(out_frame, vbuf->buf_bytes);
-		if(ES_SUCCESS == ret)
-		{
-			out_frame->type = ES_COMPRESS_VIDEO_FRAME;
-			out_frame->attr.video_frame.compress_fmt  = public_attr->video_compress_fmt;
-			out_frame->buf_size = vbuf->buf_bytes;
-			memcpy(out_frame->buf_start_addr, vbuf->start_addr, out_frame->buf_size);
-		}
-		else
-		{
-			out_frame->type = ES_UNKNOW_FRAME;
-			out_frame->buf_size = 0;
-			out_frame->buf_start_addr = NULL;
-		}
-		return ret;
+	
 	}
 	else
 	{
 		return ES_INVALID_PARAM;
 	}
-	return ES_SUCCESS;
+	return ret;
 }
 
 
@@ -633,7 +467,8 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
     	goto ERR_EXIT;
     }
 	public_attr->property = ES_VIDEO_PROPERTY_UNKNOW;
-	public_attr->bpp = 0;
+	public_attr->video_data_type = ES_VIDEO_DATA_TYPE_UNKNOW;
+	public_attr->bits_per_pix = 0;
     if ((priv_attr->_v4l2_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE))
     {
 		public_attr->property |= ES_VIDEO_PROPERTY_CAPTURE;
@@ -882,7 +717,7 @@ static es_error_t v4l2_cmr_stop(struct video_base *base)
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_media_frame *vframe)
+static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_data_frame *vframe)
 {
 	es_error_t ret = ES_SUCCESS;
 
@@ -901,7 +736,7 @@ static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_media_f
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_frame *vframe)
+static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_frame *vframe)
 {
 	struct _v4l2_priv_attr *priv_attr = base->priv;
 	struct es_video_attr *public_attr = &base->attr;
@@ -910,7 +745,6 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_f
 	struct video_buf *tmp_vbuf = NULL;
     int err;
 	es_error_t ret = ES_SUCCESS;
-	struct es_media_frame *out_frame = NULL;
 
 	if((NULL == base) 
 		|| (NULL == priv_attr)
@@ -972,7 +806,7 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_f
 		tmp_vbuf->buf_bytes = v4l2_buf_param.length;
 		tmp_vbuf->state = VBUF_USED;
 	
-		ret = set_v4l2_es_media_frame(vframe, tmp_vbuf, public_attr);
+		ret = set_v4l2_es_data_frame(vframe, tmp_vbuf, public_attr);
 		return ret;
 	}
 	else if(priv_attr->_v4l2_cap.capabilities & V4L2_CAP_READWRITE)
@@ -985,7 +819,7 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_media_f
     	{
         	return ES_FAIL;
     	}
-		ret = set_v4l2_es_media_frame(vframe, tmp_vbuf, public_attr);
+		ret = set_v4l2_es_data_frame(vframe, tmp_vbuf, public_attr);
 		return ret;
 
 	}
@@ -1164,15 +998,15 @@ static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_att
     public_attr->resolution.y = v4l2_pix_fmt.fmt.pix.height;
 	if (is_support_pixel_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
 	{
-		public_attr->video_compress_fmt = ES_VIDEO_COMPRESS_FMT_UNKNOW;
-		public_attr->pix_fomat = pixel_fmt_unify_trans(v4l2_pix_fmt.fmt.pix.pixelformat);
-		public_attr->bpp = video_base_get_bpp(public_attr->pix_fomat);
+		public_attr->video_data_type = ES_VIDEO_DATA_TYPE_PIXEL_FRAME;
+		public_attr->dat_fmt.pix_fmt = v4l2_fmt_to_es_pix_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);
+		public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
 	}
 	else if(is_support_compress_video_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
 	{
-		public_attr->video_compress_fmt = compress_video_fmt_unify_trans(v4l2_pix_fmt.fmt.pix.pixelformat);
-		public_attr->pix_fomat = ES_PIX_FMT_UNKNOW;
-		public_attr->bpp = 0;
+		public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
+		public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);
+		public_attr->bits_per_pix = 0;
 	}
 	streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     err = ioctl(base->fd, VIDIOC_G_PARM, &streamparm);
@@ -1231,8 +1065,8 @@ static es_error_t v4l2_cmr_set_attr(struct video_base *base, struct es_video_att
 	es_error_t ret = ES_SUCCESS;
 	int err = 0;
 	
-	if((base->attr.pix_fomat != public_attr->pix_fomat)
-	|| (base->attr.video_compress_fmt != public_attr->video_compress_fmt)
+	if((base->attr.dat_fmt.pix_fmt!= public_attr->dat_fmt.pix_fmt)
+	|| (base->attr.dat_fmt.video_encode_fmt!= public_attr->dat_fmt.video_encode_fmt)
 	|| (base->attr.resolution.x !=  public_attr->resolution.x)
 	|| (base->attr.resolution.y !=  public_attr->resolution.y))
 	{
@@ -1248,13 +1082,13 @@ static es_error_t v4l2_cmr_set_attr(struct video_base *base, struct es_video_att
     	}
 		v4l2_pix_fmt.fmt.pix.width = public_attr->resolution.x;
 		v4l2_pix_fmt.fmt.pix.height = public_attr->resolution.y;
-		if(ES_PIX_FMT_UNKNOW != public_attr->pix_fomat)
+		if(ES_VIDEO_DATA_TYPE_PIXEL_FRAME == public_attr->video_data_type)
 		{
-		 	v4l2_pix_fmt.fmt.pix.pixelformat = es_video_to_v4l2_pixel_fmt(public_attr->pix_fomat);
+		 	v4l2_pix_fmt.fmt.pix.pixelformat = es_pix_fmt_to_v4l2_fmt(public_attr->dat_fmt.pix_fmt);
 		}
-		else
+		else if(ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK == public_attr->video_data_type)
 		{
-			v4l2_pix_fmt.fmt.pix.pixelformat = es_video_to_v4l2_compress_fmt(public_attr->pix_fomat);
+			v4l2_pix_fmt.fmt.pix.pixelformat = es_video_encode_fmt_to_v4l2_fmt(public_attr->dat_fmt.video_encode_fmt);
 		}
     	err = ioctl(base->fd, VIDIOC_S_FMT, &v4l2_pix_fmt); 
 	}

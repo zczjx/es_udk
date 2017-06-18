@@ -39,6 +39,7 @@ all :${OBJS}
 
 %:%.c
 	echo ${CFLAGS}
+	echo ${LDFLAGS}
 	${CC} -fPIC ${CFLAGS} -L  ${TOPDIR}  -o $@  $< ${LDFLAGS} -les_udk -lpthread
 	
 clean :

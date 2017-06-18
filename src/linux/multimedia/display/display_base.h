@@ -35,8 +35,8 @@ typedef struct display_base{
 	es_error_t (*display_close)(struct display_base *base);
 	es_error_t (*display_on)(struct display_base *base);
 	es_error_t (*display_off)(struct display_base *base);
-	es_error_t (*display_flush)(struct display_base *base, struct es_media_frame *dframe);
-	es_error_t (*display_grab)(struct display_base *base, struct es_media_frame *dframe);
+	es_error_t (*display_flush)(struct display_base *base, struct es_data_frame *dframe);
+	es_error_t (*display_grab)(struct display_base *base, struct es_data_frame *dframe);
 } display_base;
 
 typedef es_error_t (*sub_init)(void);

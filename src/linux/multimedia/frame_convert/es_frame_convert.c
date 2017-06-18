@@ -270,8 +270,8 @@ es_frame_type es_get_convert_frame_type(convert_hld c_hld)
 *                
 * @comment:        
 *******************************************************************************/
-struct es_media_frame * es_convert_to_spec_frame_fmt(convert_hld c_hld, struct es_media_frame *src_frame,
-	frame_fmt_t fmt)
+struct es_data_frame * es_convert_to_spec_frame_fmt(convert_hld c_hld, struct es_data_frame *src_frame,
+	es_multimedia_fmt_t fmt)
 {
 	es_error_t ret = ES_SUCCESS;
 	struct frame_convert_base *pfcb = (struct display_base *) c_hld;

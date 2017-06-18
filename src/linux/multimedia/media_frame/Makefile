@@ -1,1 +1,0 @@
-obj-y += es_media_frame.o

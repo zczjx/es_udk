@@ -27,7 +27,7 @@
 
 #define ES_DEBUG 1
 #include<es_common.h>
-#include<es_media_frame.h>
+#include<es_data_frame.h>
 #include<es_frame_convert.h>
 
 #define BRIGHTNESS_CTRL_ID 0x980900
@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
 	es_error_t ret = ES_SUCCESS;
 	es_video_hld v_hld = NULL;
 	struct es_video_attr v_attr;
-	struct es_media_frame *vframe = NULL;
+	struct es_data_frame *vframe = NULL;
 	struct timespec tp;
 	static long pre_time = 0;
 	static long curr_time = 0;
@@ -59,8 +59,8 @@ int main(int argc, char *argv[])
 	ret = es_video_get_attr(v_hld, &v_attr);
 	check_ret(ret, "es_video_get_attr");
 	printf("[/dev/video15]: property is %d \n", v_attr.property);
-	printf("[/dev/video15]: pixel format is %d \n", v_attr.pix_fomat);
-	printf("[/dev/video15]: bytes per pixel is %d \n", v_attr.bpp);
+	printf("[/dev/video15]: pixel format is %d \n", v_attr.dat_fmt.pix_fmt);
+	printf("[/dev/video15]: bytes per pixel is %d \n", v_attr.bits_per_pix);
 	printf("[/dev/video15]: resolution x : %d, y : %d\n", v_attr.resolution.x, v_attr.resolution.y);
 
 	ret = es_video_start(v_hld);
@@ -78,7 +78,7 @@ int main(int argc, char *argv[])
 	printf("[/dev/fb*]: pix_fmt is %d \n", d_attr.pix_fmt);
 	printf("[/dev/fb*]: x_resolution is %d \n", d_attr.x_resolution);
 	printf("[/dev/fb*]: y_resolution is %d \n", d_attr.y_resolution);
-	printf("[/dev/fb*]: bpp is %d \n", d_attr.bpp);
+	printf("[/dev/fb*]: bpp is %d \n", d_attr.bits_per_pix);
 
 	ret = es_frame_convert_init();
 	check_ret(ret, "es_frame_convert_init");
@@ -88,7 +88,7 @@ int main(int argc, char *argv[])
 	while(1)
 	{
 		//es_common_delay(10000); 
-		vframe = es_media_frame_create();
+		vframe = es_data_frame_create();
 		clock_gettime(CLOCK_MONOTONIC, &tp);
 		ret = es_video_sync_recv_frame(v_hld, vframe);
 		check_ret(ret, "es_video_sync_recv_frame");
@@ -101,38 +101,37 @@ int main(int argc, char *argv[])
 			pre_time = curr_time;
 			fps = 0;
 		}
-		// es_media_frame_destroy(vframe);
-		/***********
+		// es_data_frame_destroy(vframe);
+		
 		printf("vframe->type : %d \n", vframe->type);
-		printf("vframe->attr.pix_frame.pix_fmt  : %d \n", vframe->attr.pix_frame.pix_fmt );
-		printf("vframe->attr.pix_frame.bpp : %d \n", vframe->attr.pix_frame.bpp);
-		printf("vframe->attr.pix_frame.x_resolution : %d \n", vframe->attr.pix_frame.x_resolution);
-		printf("vframe->attr.pix_frame.y_resolution : %d \n", vframe->attr.pix_frame.y_resolution);
+		printf("vframe->attr.pix_frame.pix_fmt  : %d \n", vframe->frame_attr.pix_frame.pix_fmt);
+		printf("vframe->attr.pix_frame.bpp : %d \n", vframe->frame_attr.pix_frame.bits_per_pix);
+		printf("vframe->attr.pix_frame.x_resolution : %d \n", vframe->frame_attr.pix_frame.x_resolution);
+		printf("vframe->attr.pix_frame.y_resolution : %d \n", vframe->frame_attr.pix_frame.y_resolution);
 		printf("vframe->buf_size  : %d \n", vframe->buf_size);
-		 *************/
-		if(vframe->attr.pix_frame.pix_fmt != d_attr.pix_fmt)
+		if(vframe->frame_attr.pix_frame.pix_fmt != d_attr.pix_fmt)
 		{
-			struct es_media_frame *dframe = NULL;
+			struct es_data_frame *dframe = NULL;
 			dframe = es_convert_to_spec_frame_fmt(c_hld, vframe, d_attr.pix_fmt);
 			if(NULL != dframe)
 			{
 				ret = es_display_sync_flush(d_hld, dframe);
 				check_ret(ret, "es_display_sync_flush");
-				es_media_frame_destroy(dframe);
-				es_media_frame_destroy(vframe);
+				es_data_frame_destroy(dframe);
+				es_data_frame_destroy(vframe);
 			}
 			else
 			{
-				es_media_frame_destroy(vframe);
+				es_data_frame_destroy(vframe);
 			}
 
 		}
 		else
 		{
-			vframe->attr.pix_frame.bpp = 32;
-			vframe->attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
+			vframe->frame_attr.pix_frame.bits_per_pix = 32;
+			vframe->frame_attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
 			es_display_sync_flush(d_hld, vframe);
-			es_media_frame_destroy(vframe);
+			es_data_frame_destroy(vframe);
 		}
 		
 		

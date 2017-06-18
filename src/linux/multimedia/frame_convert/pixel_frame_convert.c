@@ -19,7 +19,7 @@
 * @comment           
 *******************************************************************************/
 #include <es_frame_convert.h>
-#include <es_media_frame.h>
+#include <es_data_frame.h>
 #include "frame_convert_base.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,21 +37,21 @@ typedef struct pframe_convert_priv_attr{
 } pframe_convert_priv_attr;
 
 
-typedef es_error_t (*pix_convert_func)(struct es_media_frame *src_frame, struct es_media_frame *dst_frame);
+typedef es_error_t (*pix_convert_func)(struct es_data_frame *src_frame, struct es_data_frame *dst_frame);
 
 /*convert from i format to j format*/
 static pix_convert_func convert_func_arr[ES_PIX_FMT_NR][ES_PIX_FMT_NR];
 
 /* pixel format convert functions*/
-static es_error_t common_rgb_to_yuyv(struct es_media_frame *src_frame, struct es_media_frame *dst_frame);
+static es_error_t common_rgb_to_yuyv(struct es_data_frame *src_frame, struct es_data_frame *dst_frame);
 
-static es_error_t common_yuyv_to_rgb(struct es_media_frame *src_frame, struct es_media_frame *dst_frame);
+static es_error_t common_yuyv_to_rgb(struct es_data_frame *src_frame, struct es_data_frame *dst_frame);
 
 /*public func */
 static es_error_t pix_frame_convert_open(struct frame_convert_base *base);
 static es_error_t pix_frame_convert_close(struct frame_convert_base *base);
-static struct es_media_frame * convert_to_spec_pix_frame_fmt(struct frame_convert_base *base,
-		struct es_media_frame *src_frame, frame_fmt_t fmt);
+static struct es_data_frame * convert_to_spec_pix_frame_fmt(struct frame_convert_base *base,
+		struct es_data_frame *src_frame, es_multimedia_fmt_t fmt);
 
 
 
@@ -72,7 +72,6 @@ static es_error_t pix_frame_convert_open(struct frame_convert_base *base)
 {
 	es_error_t ret = ES_SUCCESS; 
 	struct pframe_convert_priv_attr *priv_attr = NULL;
-	int err;
 	int i = 0;
 	int j = 0;
 
@@ -148,10 +147,10 @@ static es_error_t pix_frame_convert_close(struct frame_convert_base *base)
 *                
 * @comment:        
 *******************************************************************************/
-static struct es_media_frame * convert_to_spec_pix_frame_fmt(struct frame_convert_base *base,
-		struct es_media_frame *src_frame, frame_fmt_t fmt)
+static struct es_data_frame * convert_to_spec_pix_frame_fmt(struct frame_convert_base *base,
+		struct es_data_frame *src_frame, es_multimedia_fmt_t fmt)
 {
-	es_media_frame *dst_frame = NULL;
+	es_data_frame *dst_frame = NULL;
 	es_error_t ret = ES_SUCCESS;
 	int i = ES_PIX_FMT_UNKNOW;
 	int j = ES_PIX_FMT_UNKNOW;
@@ -170,17 +169,17 @@ static struct es_media_frame * convert_to_spec_pix_frame_fmt(struct frame_conver
 		ES_PRINTF("[%s] pixel convert can not convert other frame!\n" , __FUNCTION__);
         return NULL;
 	}
-	dst_frame = es_media_frame_create();
+	dst_frame = es_data_frame_create();
 	if(NULL == dst_frame)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
-		ES_PRINTF("[%s] es_media_frame_create no mem to create!\n" , __FUNCTION__);
+		ES_PRINTF("[%s] es_data_frame_create no mem to create!\n" , __FUNCTION__);
         return NULL;
 	}
 	dst_frame->type = src_frame->type;
-	dst_frame->attr.pix_frame.pix_fmt = fmt;
-	i = src_frame->attr.pix_frame.pix_fmt;
-	j = dst_frame->attr.pix_frame.pix_fmt;
+	dst_frame->frame_attr.pix_frame.pix_fmt = fmt;
+	i = src_frame->frame_attr.pix_frame.pix_fmt;
+	j = dst_frame->frame_attr.pix_frame.pix_fmt;
 	/* assert i j here */
 	if((i >= ES_PIX_FMT_NR)
 	|| (j >= ES_PIX_FMT_NR))
@@ -199,25 +198,12 @@ static struct es_media_frame * convert_to_spec_pix_frame_fmt(struct frame_conver
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] can not support this format convert!\n" , __FUNCTION__);
-		es_media_frame_destroy(dst_frame);
+		es_data_frame_destroy(dst_frame);
 		return NULL;
 	}
 	
 	return dst_frame;
 }
-
-
-static enum AVPixelFormat es2ffmpeg_pix_fmt_arr[] = {
-	[ES_PIX_FMT_UNKNOW] = AV_PIX_FMT_NONE,
-		
-	[ES_PIX_FMT_RGB332] = AV_PIX_FMT_RGB8,
-	[ES_PIX_FMT_RGB565] = AV_PIX_FMT_RGB565LE,
-	[ES_PIX_FMT_RGB24]	= AV_PIX_FMT_RGB24,
-	[ES_PIX_FMT_BGRA32]	= AV_PIX_FMT_BGRA,
-	
-	[ES_PIX_FMT_YUYV] = AV_PIX_FMT_YUYV422,
-};
-
 
 /*******************************************************************************
 * @function name: common_rgb_to_yuyv    
@@ -231,7 +217,7 @@ static enum AVPixelFormat es2ffmpeg_pix_fmt_arr[] = {
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t common_rgb_to_yuyv(struct es_media_frame *src_frame, struct es_media_frame *dst_frame)
+static es_error_t common_rgb_to_yuyv(struct es_data_frame *src_frame, struct es_data_frame *dst_frame)
 {
 	es_error_t ret = ES_SUCCESS;
 
@@ -250,19 +236,19 @@ static es_error_t common_rgb_to_yuyv(struct es_media_frame *src_frame, struct es
 *                
 * @comment:        
 *******************************************************************************/
-static es_error_t common_yuyv_to_rgb(struct es_media_frame *src_frame, struct es_media_frame *dst_frame)
+static es_error_t common_yuyv_to_rgb(struct es_data_frame *src_frame, struct es_data_frame *dst_frame)
 {
 	es_error_t ret = ES_SUCCESS;
 	int err = 0; 
 	static int buf_cnt = 0;
-    const int src_w = src_frame->attr.pix_frame.x_resolution;
-	const int src_h = src_frame->attr.pix_frame.y_resolution; 
-    enum AVPixelFormat src_pixfmt = es2ffmpeg_pix_fmt_arr[src_frame->attr.pix_frame.pix_fmt];  
+    const int src_w = src_frame->frame_attr.pix_frame.x_resolution;
+	const int src_h = src_frame->frame_attr.pix_frame.y_resolution; 
+    enum AVPixelFormat src_pixfmt = es_pix_fmt_to_ffmpeg_fmt(src_frame->frame_attr.pix_frame.pix_fmt);  
 	int src_bpp = av_get_bits_per_pixel(av_pix_fmt_desc_get(src_pixfmt)); 
 	
     const int dst_w = src_w;
 	const int dst_h = src_h;  
-    enum AVPixelFormat dst_pixfmt = es2ffmpeg_pix_fmt_arr[dst_frame->attr.pix_frame.pix_fmt];  
+    enum AVPixelFormat dst_pixfmt = es_pix_fmt_to_ffmpeg_fmt(dst_frame->frame_attr.pix_frame.pix_fmt);  
     int dst_bpp = av_get_bits_per_pixel(av_pix_fmt_desc_get(dst_pixfmt));  
 
 	uint8_t *src_data[4];  
@@ -315,19 +301,21 @@ static es_error_t common_yuyv_to_rgb(struct es_media_frame *src_frame, struct es
 	sws_scale(convert_ctx, src_data, src_linesize, 0, src_h, dst_data, dst_linesize);  
 	// ES_PRINTF("Finish process 1 frame \n");
 
-	dst_frame->attr.pix_frame.x_resolution = dst_w;
-	dst_frame->attr.pix_frame.y_resolution = dst_h;
-	dst_frame->attr.pix_frame.bpp = dst_bpp;
-	int dst_buf_bytes = (dst_bpp / 8) * dst_w * dst_h;
-	ret = es_media_frame_buf_alloc(dst_frame, dst_buf_bytes);
+	dst_frame->frame_attr.pix_frame.x_resolution = dst_w;
+	dst_frame->frame_attr.pix_frame.y_resolution = dst_h;
+	dst_frame->frame_attr.pix_frame.bits_per_pix = dst_bpp;
+	int dst_buf_bytes = (dst_bpp >> 3) * dst_w * dst_h;
+	ret = es_data_frame_buf_alloc(dst_frame, src_frame->mem_method, dst_buf_bytes);
 	if(ES_SUCCESS != ret)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
-		ES_PRINTF("[%s] es_media_frame_buf_alloc fail\n" , __FUNCTION__); 
+		ES_PRINTF("[%s] es_data_frame_buf_alloc fail\n" , __FUNCTION__); 
        	ret = ES_FAIL;
 		goto end; 	
 	}
+	
 	memcpy(dst_frame->buf_start_addr, dst_data[0], dst_buf_bytes); 
+
 end:
 	sws_freeContext(convert_ctx);
 	av_freep(&src_data[0]);

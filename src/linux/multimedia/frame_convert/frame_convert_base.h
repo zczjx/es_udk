@@ -30,8 +30,8 @@ typedef struct frame_convert_base{
 
 	es_error_t (*frame_convert_open)(struct frame_convert_base *base);
 	es_error_t (*frame_convert_close)(struct frame_convert_base *base);
-	struct es_media_frame * (*convert_to_spec_frame_fmt)(struct frame_convert_base *base,
-		struct es_media_frame *src_frame, frame_fmt_t fmt);
+	struct es_data_frame * (*convert_to_spec_frame_fmt)(struct frame_convert_base *base,
+		struct es_data_frame *src_frame, es_multimedia_fmt_t fmt);
 } frame_convert_base;
 
 typedef es_error_t (*sub_init)(void);

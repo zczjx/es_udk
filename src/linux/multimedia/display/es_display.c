@@ -54,10 +54,10 @@ static sub_init es_display_init_arr[] = {
 static void inline do_display_base_instantiate(struct display_base *instance, 
 	struct display_base *der_class)
 {
-	instance->attr.pix_fmt = ES_DISPLAY_CLASS_UNKNOW;
-	instance->attr.x_resolution= 0;
-	instance->attr.y_resolution= 0;
-	instance->attr.bpp= 0;
+	instance->attr.pix_fmt = ES_PIX_FMT_UNKNOW;
+	instance->attr.x_resolution = 0;
+	instance->attr.y_resolution = 0;
+	instance->attr.bits_per_pix = 0;
 	INIT_ES_LIST_HEAD(&instance->entry);
 	instance->priv = NULL;
 	instance->sub_class = der_class->sub_class;
@@ -381,7 +381,7 @@ extern es_error_t es_display_off(es_disp_hld d_hld)
 *                
 * @comment:        
 *******************************************************************************/
-es_error_t es_display_async_flush(es_disp_hld d_hld, struct es_media_frame *dframe,
+es_error_t es_display_async_flush(es_disp_hld d_hld, struct es_data_frame *dframe,
 								disp_callback dcb, void *arg)
 {
 	es_error_t ret = ES_SUCCESS;
@@ -401,7 +401,7 @@ es_error_t es_display_async_flush(es_disp_hld d_hld, struct es_media_frame *dfra
 *                
 * @comment:        
 *******************************************************************************/
-es_error_t es_display_sync_flush(es_disp_hld d_hld, struct es_media_frame *dframe)
+es_error_t es_display_sync_flush(es_disp_hld d_hld, struct es_data_frame *dframe)
 {
 	es_error_t ret = ES_SUCCESS;
 	struct display_base *pdb = (struct display_base *) d_hld;
@@ -460,7 +460,7 @@ es_error_t es_display_async_grab(es_disp_hld d_hld, disp_callback dcb, void *arg
 *                
 * @comment:        
 *******************************************************************************/
-es_error_t es_display_sync_grab(es_disp_hld d_hld, struct es_media_frame *dframe)
+es_error_t es_display_sync_grab(es_disp_hld d_hld, struct es_data_frame *dframe)
 {
 	es_error_t ret = ES_SUCCESS;
 	struct display_base *pdb = (struct display_base *) d_hld;

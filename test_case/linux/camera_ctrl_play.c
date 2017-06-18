@@ -25,7 +25,7 @@
 
 #define ES_DEBUG 1
 #include<es_common.h>
-#include<es_media_frame.h>
+#include<es_data_frame.h>
 #include<es_frame_convert.h>
 
 #define BRIGHTNESS_CTRL_ID 0x980900
@@ -70,8 +70,8 @@ int main(int argc, char *argv[])
 	pthread_mutex_unlock(&vdsc.lock);
 	check_ret(ret, "es_video_get_attr");
 	printf("[/dev/video15]: property is %d \n", vdsc.v_attr.property);
-	printf("[/dev/video15]: pixel format is %d \n", vdsc.v_attr.pix_fomat);
-	printf("[/dev/video15]: bytes per pixel is %d \n", vdsc.v_attr.bpp);
+	printf("[/dev/video15]: pixel format is %d \n", vdsc.v_attr.dat_fmt.pix_fmt);
+	printf("[/dev/video15]: bytes per pixel is %d \n", vdsc.v_attr.bits_per_pix);
 	printf("[/dev/video15]: resolution x : %d, y : %d\n", vdsc.v_attr.resolution.x, vdsc.v_attr.resolution.y);
 	for(i = 0; i < 32; i++)
 	{
@@ -142,7 +142,7 @@ static void *vframe_update(void *arg)
 	es_disp_hld d_hld = NULL;
 	struct es_display_attr d_attr;
 	convert_hld c_hld = NULL;
-	struct es_media_frame *vframe = NULL;
+	struct es_data_frame *vframe = NULL;
 
 
 
@@ -158,35 +158,35 @@ static void *vframe_update(void *arg)
 	while(1)
 	{
 		// es_common_delay(10000);
-		vframe = es_media_frame_create();
+		vframe = es_data_frame_create();
 		pthread_mutex_lock(&vdsc.lock);
 		ret = es_video_sync_recv_frame(vdsc.v_hld, vframe);
 		pthread_mutex_unlock(&vdsc.lock);
 		
 		check_ret(ret, "es_video_sync_recv_frame");
-		if(vframe->attr.pix_frame.pix_fmt != d_attr.pix_fmt)
+		if(vframe->frame_attr.pix_frame.pix_fmt != d_attr.pix_fmt)
 		{
-			struct es_media_frame *dframe = NULL;
+			struct es_data_frame *dframe = NULL;
 			dframe = es_convert_to_spec_frame_fmt(c_hld, vframe, d_attr.pix_fmt);
 			if(NULL != dframe)
 			{
 				ret = es_display_sync_flush(d_hld, dframe);
 				check_ret(ret, "es_display_sync_flush");
-				es_media_frame_destroy(dframe);
-				es_media_frame_destroy(vframe);
+				es_data_frame_destroy(dframe);
+				es_data_frame_destroy(vframe);
 			}
 			else
 			{
-				es_media_frame_destroy(vframe);
+				es_data_frame_destroy(vframe);
 			}
 
 		}
 		else
 		{
-			vframe->attr.pix_frame.bpp = 32;
-			vframe->attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
+			vframe->frame_attr.pix_frame.bits_per_pix = 32;
+			vframe->frame_attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
 			es_display_sync_flush(d_hld, vframe);
-			es_media_frame_destroy(vframe);
+			es_data_frame_destroy(vframe);
 		}
 	}
 

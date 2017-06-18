@@ -21,7 +21,7 @@
 #ifndef _ES_VIDEO_H_
 #define _ES_VIDEO_H_
 #include <es_common.h>
-#include <es_media_frame.h>
+#include <es_data_frame.h>
 
 typedef void * es_video_hld;
 
@@ -66,12 +66,23 @@ typedef struct es_video_ctrl{
 } es_video_ctrl;
 
 
+typedef enum{
+	ES_VIDEO_DATA_TYPE_UNKNOW = 0,
+	ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK,
+	ES_VIDEO_DATA_TYPE_PIXEL_FRAME,
+} es_video_data_type;
+
+typedef union es_video_data_fmt{
+	es_pix_fmt pix_fmt; //rw
+	es_video_encode_fmt video_encode_fmt; //rw
+} es_video_data_fmt;
+
 typedef struct es_video_attr{
 	unsigned long property;  //ro
-	es_pix_fmt pix_fomat; //rw
-	es_video_compress_fmt video_compress_fmt; //rw
+	es_video_data_type video_data_type; //ro
+	union es_video_data_fmt dat_fmt;
 	struct es_video_resolution resolution; //rw
-	unsigned long bpp; //ro  bits per pixel
+	unsigned long bits_per_pix; //ro  
 	unsigned long fps; //rw  frames per second
 	struct es_list_head *p_ctrl_list_head; //ro
 } es_video_attr;
@@ -96,22 +107,22 @@ extern es_error_t es_video_start(es_video_hld v_hld);
 
 extern es_error_t es_video_stop(es_video_hld v_hld);
 
-typedef es_error_t (*video_callback)(struct es_media_frame *vframe, void *arg);
+typedef es_error_t (*video_callback)(struct es_data_frame *vframe, void *arg);
 
 extern es_error_t es_video_async_recv_frame(es_video_hld v_hld, 
 	video_callback vcb, 
 	void *arg);
 
 extern es_error_t es_video_sync_recv_frame(es_video_hld v_hld, 
-	struct es_media_frame *vframe);
+	struct es_data_frame *vframe);
 
 extern es_error_t es_video_async_send_frame(es_video_hld v_hld,
-	struct es_media_frame *vframe, 
+	struct es_data_frame *vframe, 
 	video_callback vcb, 
 	void *arg);
 
 extern es_error_t es_video_sync_send_frame(es_video_hld v_hld, 
-	struct es_media_frame *vframe);
+	struct es_data_frame *vframe);
 
 typedef struct es_video_ctrl_cmd{
 	unsigned long ctrl_id; 

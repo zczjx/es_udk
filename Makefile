@@ -19,7 +19,7 @@ CFLAGS += -I $(shell pwd)/include
 
 # CFLAGS += -finput-charset=GBK -fexec-charset=UTF-8
 LDFLAGS = "-les_common"
-TOPDIR := $(shell pwd)
+TOPDIR=$(shell pwd)
 export TOPDIR
 
 CFLAGS += -I ${TOPDIR}
