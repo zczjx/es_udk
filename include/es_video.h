@@ -22,6 +22,7 @@
 #define _ES_VIDEO_H_
 #include <es_common.h>
 #include <es_data_frame.h>
+#include <es_data_chunk.h>
 
 typedef void * es_video_hld;
 
@@ -113,8 +114,15 @@ extern es_error_t es_video_async_recv_frame(es_video_hld v_hld,
 	video_callback vcb, 
 	void *arg);
 
+extern es_error_t es_video_async_recv_encode_chunk(es_video_hld v_hld, 
+	video_callback vcb, 
+	void *arg);
+
 extern es_error_t es_video_sync_recv_frame(es_video_hld v_hld, 
 	struct es_data_frame *vframe);
+
+extern es_error_t es_video_sync_recv_encode_chunk(es_video_hld v_hld, 
+	struct es_data_chunk *vchunk);
 
 extern es_error_t es_video_async_send_frame(es_video_hld v_hld,
 	struct es_data_frame *vframe, 

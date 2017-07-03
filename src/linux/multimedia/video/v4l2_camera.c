@@ -60,7 +60,7 @@ static const int compatible_pixel_fmt[] = {
 	V4L2_PIX_FMT_RGB32,
 };
 
-static const int compress_video_fmt[] = {
+static const int encode_video_fmt[] = {
 	/*below is compress video format*/
 	V4L2_PIX_FMT_MJPEG,
 };
@@ -83,7 +83,7 @@ static es_error_t v4l2_cmr_get_ctrl(struct video_base *base, struct es_video_ctr
 static es_error_t v4l2_cmr_set_ctrl(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 static es_error_t v4l2_cmr_send_frame(struct video_base *base, struct es_data_frame *vframe);
 static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_frame *vframe);
-
+static es_error_t v4l2_cmr_recv_encode_chunk(struct video_base *base, struct es_data_chunk *vchunk);
 /*internal function */
 
 /*******************************************************************************
@@ -121,8 +121,9 @@ static inline bool is_support_pixel_fmt(int pix_fmt)
     return es_false;
 }
 
+
 /*******************************************************************************
-* @function name: is_support_compress_video_fmt    
+* @function name: is_support_encode_video_fmt    
 *                
 * @brief:          
 *                
@@ -133,15 +134,15 @@ static inline bool is_support_pixel_fmt(int pix_fmt)
 *                
 * @comment:        
 *******************************************************************************/
-static inline bool is_support_compress_video_fmt(int video_fmt)
+static inline bool is_support_encode_video_fmt(int video_fmt)
 {
 	int i;
 	int arr_size;
 	
-	if((0 != sizeof(compress_video_fmt)) && (0 != sizeof(compress_video_fmt)[0]))
+	if((0 != sizeof(encode_video_fmt)) && (0 != sizeof(encode_video_fmt)[0]))
 	{
 		/*escape divide zero*/
-		arr_size = sizeof(compress_video_fmt)/sizeof(compress_video_fmt[0]);
+		arr_size = sizeof(encode_video_fmt)/sizeof(encode_video_fmt[0]);
 	}
 	else
 	{
@@ -150,7 +151,7 @@ static inline bool is_support_compress_video_fmt(int video_fmt)
 	
     for (i = 0; i < arr_size; i++)
     {
-        if (compress_video_fmt[i] == video_fmt)
+        if (encode_video_fmt[i] == video_fmt)
             return es_true;
     }
     return es_false;
@@ -190,7 +191,7 @@ static inline es_error_t set_v4l2_fmt_attr(int fd, struct _v4l2_priv_attr *priv_
 			public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
             break;
         }
-		else if(is_support_compress_video_fmt(fmt_dsc.pixelformat))
+		else if(is_support_encode_video_fmt(fmt_dsc.pixelformat))
 		{
 			public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
 			public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(fmt_dsc.pixelformat);
@@ -395,6 +396,50 @@ static inline es_error_t set_v4l2_es_data_frame(struct es_data_frame *out_frame,
 	return ret;
 }
 
+static inline es_error_t set_v4l2_es_data_chunk(struct es_data_chunk *out_chunk, 
+		struct video_buf *vbuf, 
+		struct es_video_attr *public_attr)
+{
+	es_error_t ret;
+		
+	if((NULL == out_chunk) || (NULL == vbuf) || (NULL == public_attr))
+	{
+		return ES_FAIL;
+	}
+	
+	if(ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK == public_attr->video_data_type)
+	{
+		ret = es_data_chunk_buf_alloc(out_chunk, DATA_FRAME_MEM_METHOD_MALLOC, vbuf->buf_bytes);
+		if(ES_SUCCESS == ret)
+		{
+			out_chunk->type = ES_ENCODE_VIDEO_CHUNK;
+			out_chunk->chunk_attr.encode_video.encode_fmt = public_attr->dat_fmt.video_encode_fmt;
+			out_chunk->mem_method = DATA_CHUNK_MEM_METHOD_MALLOC;
+			out_chunk->buf_size = vbuf->buf_bytes;
+			memcpy(out_chunk->buf_start_addr, vbuf->start_addr, out_chunk->buf_size);
+			INIT_ES_LIST_HEAD(&out_chunk->entry);
+			ret = ES_SUCCESS;
+		}
+		else
+		{
+			out_chunk->type = ES_UNKNOW_CHUNK;
+			out_chunk->buf_size = 0;
+			out_chunk->buf_start_addr = NULL;
+			ret = ES_FAIL;
+		}
+	
+	}
+	else
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] do not support this buf model!\n" , __FUNCTION__);
+		ES_PRINTF("public_attr->video_data_type: %d\n" , public_attr->video_data_type);
+		
+		return ES_INVALID_PARAM;
+	}
+	return ret;
+}
+
 
 
 static struct video_base v4l2_cmr = {
@@ -412,6 +457,7 @@ static struct video_base v4l2_cmr = {
 	.video_set_ctrl = v4l2_cmr_set_ctrl,
 	.video_send_frame = v4l2_cmr_send_frame,
 	.video_recv_frame = v4l2_cmr_recv_frame,
+	.video_recv_encode_chunk = v4l2_cmr_recv_encode_chunk,
 };
 
 /*******************************************************************************
@@ -747,9 +793,9 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_fr
 	es_error_t ret = ES_SUCCESS;
 
 	if((NULL == base) 
-		|| (NULL == priv_attr)
-		|| (NULL == public_attr)
-		|| (NULL == vframe))
+	|| (NULL == priv_attr)
+	|| (NULL == public_attr)
+	|| (NULL == vframe))
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
@@ -785,6 +831,7 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_fr
 		fd_set[0].fd     = base->fd;
     	fd_set[0].events = POLLIN;
     	err = poll(fd_set, 1, -1);
+	
     	if (err <= 0)
     	{
 			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
@@ -805,7 +852,6 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_fr
 		tmp_vbuf = priv_attr->_vbuf_arr[priv_attr->_current_buf_idx];
 		tmp_vbuf->buf_bytes = v4l2_buf_param.length;
 		tmp_vbuf->state = VBUF_USED;
-	
 		ret = set_v4l2_es_data_frame(vframe, tmp_vbuf, public_attr);
 		return ret;
 	}
@@ -832,6 +878,117 @@ static es_error_t v4l2_cmr_recv_frame(struct video_base *base, struct es_data_fr
 		vframe->buf_start_addr = NULL;
 		return ES_FAIL;
 	}
+}
+
+/*******************************************************************************
+* @function name: v4l2_cmr_recv_encode_chunk    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+static es_error_t v4l2_cmr_recv_encode_chunk(struct video_base *base, struct es_data_chunk *vchunk)
+{
+	struct _v4l2_priv_attr *priv_attr = base->priv;
+	struct es_video_attr *public_attr = &base->attr;
+	struct pollfd fd_set[1];
+	struct v4l2_buffer v4l2_buf_param;
+	struct video_buf *tmp_vbuf = NULL;
+    int err;
+	es_error_t ret = ES_SUCCESS;
+
+	if((NULL == base) 
+	|| (NULL == priv_attr)
+	|| (NULL == public_attr)
+	|| (NULL == vchunk))
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
+		return ES_INVALID_PARAM;
+	}
+
+	if(priv_attr->_v4l2_cap.capabilities & V4L2_CAP_STREAMING)
+	{
+		/*release current buf first*/
+		if((priv_attr->_current_buf_idx < 0) 
+		|| (priv_attr->_current_buf_idx >= COUNT_OF_V4L2_REQ_BUFFER))
+		{
+			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] error buffer index.\n" , __FUNCTION__);
+    		return ES_FAIL;
+		}
+		memset(&v4l2_buf_param, 0, sizeof(struct v4l2_buffer));
+		tmp_vbuf = priv_attr->_vbuf_arr[priv_attr->_current_buf_idx];
+		tmp_vbuf->buf_bytes = v4l2_buf_param.length;
+		tmp_vbuf->state = VBUF_FREE;
+		v4l2_buf_param.index  = priv_attr->_current_buf_idx;
+		v4l2_buf_param.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		v4l2_buf_param.memory = V4L2_MEMORY_MMAP;
+		err = ioctl(base->fd, VIDIOC_QBUF, &v4l2_buf_param);
+		if (err) 
+    	{
+    		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] Unable to queue buffer.\n" , __FUNCTION__);
+	    	return ES_FAIL;
+		}
+
+		/*get date from buf*/
+		fd_set[0].fd     = base->fd;
+    	fd_set[0].events = POLLIN;
+    	err = poll(fd_set, 1, -1);
+	
+    	if (err <= 0)
+    	{
+			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] poll error!\n" , __FUNCTION__);
+        	return ES_FAIL;
+   	 	}
+    	memset(&v4l2_buf_param, 0, sizeof(struct v4l2_buffer));
+    	v4l2_buf_param.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    	v4l2_buf_param.memory = V4L2_MEMORY_MMAP;
+    	err = ioctl(base->fd, VIDIOC_DQBUF, &v4l2_buf_param);
+    	if (err < 0) 
+    	{
+			ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+			ES_PRINTF("[%s] Unable to dequeue buffer.\n" , __FUNCTION__);
+    		return ES_FAIL;
+    	}
+   		priv_attr->_current_buf_idx = v4l2_buf_param.index;
+		tmp_vbuf = priv_attr->_vbuf_arr[priv_attr->_current_buf_idx];
+		tmp_vbuf->buf_bytes = v4l2_buf_param.length;
+		tmp_vbuf->state = VBUF_USED;
+		ret = set_v4l2_es_data_chunk(vchunk, tmp_vbuf, public_attr);
+		return ret;
+	}
+	else if(priv_attr->_v4l2_cap.capabilities & V4L2_CAP_READWRITE)
+	{
+		tmp_vbuf = priv_attr->_vbuf_arr[0];
+		tmp_vbuf->buf_bytes = priv_attr->_max_vbuf_bytes;
+		tmp_vbuf->state = VBUF_USED;
+		err = read(base->fd, tmp_vbuf->start_addr, tmp_vbuf->buf_bytes);
+		if (err <= 0)
+    	{
+        	return ES_FAIL;
+    	}
+		ret = set_v4l2_es_data_chunk(vchunk, tmp_vbuf, public_attr);
+		return ret;
+
+	}
+	else
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] do not support this model!\n" , __FUNCTION__);
+		vchunk->type = ES_UNKNOW_CHUNK;
+		vchunk->buf_size = 0;
+		vchunk->buf_start_addr = NULL;
+		return ES_FAIL;
+	}
+
 }
 
 /*******************************************************************************
@@ -1002,7 +1159,7 @@ static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_att
 		public_attr->dat_fmt.pix_fmt = v4l2_fmt_to_es_pix_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);
 		public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
 	}
-	else if(is_support_compress_video_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
+	else if(is_support_encode_video_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
 	{
 		public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
 		public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);

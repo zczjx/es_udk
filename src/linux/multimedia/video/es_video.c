@@ -69,6 +69,7 @@ static void inline do_video_base_instantiate(struct video_base *instance,
 	instance->video_set_ctrl = der_class->video_set_ctrl;
 	instance->video_send_frame = der_class->video_send_frame;
 	instance->video_recv_frame = der_class->video_recv_frame;
+	instance->video_recv_encode_chunk = der_class->video_recv_encode_chunk;
 }
 
 /*******************************************************************************
@@ -430,6 +431,28 @@ es_error_t es_video_async_recv_frame(es_video_hld v_hld,
 	return ret;
 
 }
+
+/*******************************************************************************
+* @function name: es_video_async_recv_encode_chunk    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+es_error_t es_video_async_recv_encode_chunk(es_video_hld v_hld, 
+	video_callback vcb, 
+	void *arg)
+{
+	es_error_t ret = ES_SUCCESS;
+
+	return ret;
+	
+}
 /*******************************************************************************
 * @function name: es_video_sync_recv_frame    
 *                
@@ -464,6 +487,46 @@ es_error_t es_video_sync_recv_frame(es_video_hld v_hld,
 	}
 	return ret;
 
+}
+
+
+/*******************************************************************************
+* @function name: es_video_sync_recv_encode_chunk    
+*                
+* @brief:          
+*                
+* @param:        
+*                
+*                
+* @return:        
+*                
+* @comment:        
+*******************************************************************************/
+es_error_t es_video_sync_recv_encode_chunk(es_video_hld v_hld, 
+	struct es_data_chunk *vchunk)
+{
+	es_error_t ret = ES_SUCCESS;
+	struct video_base *pvb = (struct video_base *) v_hld;
+
+	if((NULL == pvb) || (NULL == vchunk))
+	{
+		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
+		ES_PRINTF("[%s] input null pointer!\n" , __FUNCTION__);
+		return ES_INVALID_PARAM;
+	}
+	if(NULL != pvb->video_recv_encode_chunk)
+	{
+		ES_PRINTF("before pvb->video_recv_encode_chunk");
+		ret = pvb->video_recv_encode_chunk(pvb, vchunk);
+		ES_PRINTF("after pvb->video_recv_encode_chunk");
+	}
+	else
+	{
+		ret = ES_INVALID_PARAM;
+	}
+	return ret;
+
+	
 }
 /*******************************************************************************
 * @function name: es_video_async_send_frame    

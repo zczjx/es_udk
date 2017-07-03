@@ -58,6 +58,7 @@ typedef struct video_base{
 	es_error_t (*video_set_ctrl)(struct video_base *base, struct es_video_ctrl_cmd *cmd);
 	es_error_t (*video_send_frame)(struct video_base *base, struct es_data_frame *vframe);
 	es_error_t (*video_recv_frame)(struct video_base *base, struct es_data_frame *vframe);
+	es_error_t (*video_recv_encode_chunk)(struct video_base *base, struct es_data_chunk *vchunk);
 } video_base;
 
 
