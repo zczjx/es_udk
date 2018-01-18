@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
 	check_ret(ret, "es_frame_convert_init");
 
 	pthread_mutex_lock(&vdsc.lock);
-	ret = es_video_open("/dev/video15", ES_VIDEO_CLASS_CAMERA, &vdsc.v_hld);
+	ret = es_video_open("/dev/video0", ES_VIDEO_CLASS_CAMERA, &vdsc.v_hld);
 	pthread_mutex_unlock(&vdsc.lock);
 	check_ret(ret, "es_video_open");
 
@@ -69,10 +69,11 @@ int main(int argc, char *argv[])
 	ret = es_video_get_attr(vdsc.v_hld, &vdsc.v_attr);
 	pthread_mutex_unlock(&vdsc.lock);
 	check_ret(ret, "es_video_get_attr");
-	printf("[/dev/video15]: property is %d \n", vdsc.v_attr.property);
-	printf("[/dev/video15]: pixel format is %d \n", vdsc.v_attr.dat_fmt.pix_fmt);
-	printf("[/dev/video15]: bytes per pixel is %d \n", vdsc.v_attr.bits_per_pix);
-	printf("[/dev/video15]: resolution x : %d, y : %d\n", vdsc.v_attr.resolution.x, vdsc.v_attr.resolution.y);
+	printf("[/dev/video0]: property is %d \n", vdsc.v_attr.property);
+	printf("[/dev/video0]: pixel format is %d \n", vdsc.v_attr.dat_fmt.pix_fmt);
+	printf("[/dev/video0]: bytes per pixel is %d \n", vdsc.v_attr.pix_fmt_info.bits_per_pix);
+	printf("[/dev/video0]: pix_fmt_info.store_fmt is %d \n", vdsc.v_attr.pix_fmt_info.store_fmt);
+	printf("[/dev/video0]: resolution x : %d, y : %d\n", vdsc.v_attr.resolution.x, vdsc.v_attr.resolution.y);
 	for(i = 0; i < 32; i++)
 	{
 		ctrl_arr[i] = NULL;
@@ -85,13 +86,13 @@ int main(int argc, char *argv[])
 		if(NULL != cur_ctrl)
 		{
 			printf("\n");
-			printf("[/dev/video15]: cur_ctrl->ctrl_id: 0x%x \n", cur_ctrl->ctrl_id);
-			printf("[/dev/video15]: cur_ctrl->name: %s \n", cur_ctrl->name);
-			printf("[/dev/video15]: cur_ctrl->minimum: %d \n", cur_ctrl->minimum);
-			printf("[/dev/video15]: cur_ctrl->maximum: %d \n", cur_ctrl->maximum);
-			printf("[/dev/video15]: cur_ctrl->step: %d \n", cur_ctrl->step);
-			printf("[/dev/video15]: cur_ctrl->default_value: %d \n", cur_ctrl->default_val);
-			printf("[/dev/video15]: cur_ctrl->status: 0x%x \n", cur_ctrl->status);
+			printf("[/dev/video0]: cur_ctrl->ctrl_id: 0x%x \n", cur_ctrl->ctrl_id);
+			printf("[/dev/video0]: cur_ctrl->name: %s \n", cur_ctrl->name);
+			printf("[/dev/video0]: cur_ctrl->minimum: %d \n", cur_ctrl->minimum);
+			printf("[/dev/video0]: cur_ctrl->maximum: %d \n", cur_ctrl->maximum);
+			printf("[/dev/video0]: cur_ctrl->step: %d \n", cur_ctrl->step);
+			printf("[/dev/video0]: cur_ctrl->default_value: %d \n", cur_ctrl->default_val);
+			printf("[/dev/video0]: cur_ctrl->status: 0x%x \n", cur_ctrl->status);
 			printf("\n");
 			ctrl_arr[i] = cur_ctrl;
 			i++;
@@ -183,7 +184,8 @@ static void *vframe_update(void *arg)
 		}
 		else
 		{
-			vframe->frame_attr.pix_frame.bits_per_pix = 32;
+			vframe->frame_attr.pix_frame.pix_fmt_info.store_fmt = ES_PIX_STORE_FMT_PACKED;
+			vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix = 32;
 			vframe->frame_attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
 			es_display_sync_flush(d_hld, vframe);
 			es_data_frame_destroy(vframe);
@@ -200,10 +202,10 @@ static int set_camera_ctrl(struct es_video_ctrl *ctrl_item)
 		return -1;
 
 	printf("\n");
-	printf("[/dev/video15]: ctrl_item->name: %s \n", ctrl_item->name);
-	printf("[/dev/video15]: ctrl_item->minimum: %d \n", ctrl_item->minimum);
-	printf("[/dev/video15]: ctrl_item->maximum: %d \n", ctrl_item->maximum);
-	printf("[/dev/video15]: ctrl_item->step: %d \n", ctrl_item->step);
+	printf("[/dev/video0]: ctrl_item->name: %s \n", ctrl_item->name);
+	printf("[/dev/video0]: ctrl_item->minimum: %d \n", ctrl_item->minimum);
+	printf("[/dev/video0]: ctrl_item->maximum: %d \n", ctrl_item->maximum);
+	printf("[/dev/video0]: ctrl_item->step: %d \n", ctrl_item->step);
 	printf("\n");
 	while(1)
 	{

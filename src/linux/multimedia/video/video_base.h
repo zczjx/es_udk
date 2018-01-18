@@ -36,6 +36,8 @@ typedef struct video_buf{
 	vbuf_state state;
 	unsigned long buf_bytes;
 	void *start_addr;
+	void *planes[ES_DATA_FRAME_MAX_PLANE_NR];
+	unsigned long plane_bytes[ES_DATA_FRAME_MAX_PLANE_NR];
 	struct es_list_head entry;
 } video_buf;
 

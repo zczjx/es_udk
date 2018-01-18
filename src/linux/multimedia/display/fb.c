@@ -94,7 +94,7 @@ static inline es_error_t do_flush_rgb_frame(struct fb_priv_attr *priv_attr,
 	
 {
 	unsigned long flush_line_bytes;
-	unsigned long flush_col_nr;
+	unsigned long flush_line_nr;
 
 	unsigned long frame_line_bytes;
 	unsigned long fb_line_bytes;
@@ -118,19 +118,20 @@ static inline es_error_t do_flush_rgb_frame(struct fb_priv_attr *priv_attr,
 	}
 
 	
-	if(pix_frame_attr->bits_per_pix != public_attr->bits_per_pix)
+	if((pix_frame_attr->pix_fmt_info.bits_per_pix != public_attr->pix_fmt_info.bits_per_pix)
+	|| (pix_frame_attr->pix_fmt_info.store_fmt != public_attr->pix_fmt_info.store_fmt))
 	{	
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 		ES_PRINTF("[%s] frame's bpp is not compatible with display screen!\n" , __FUNCTION__);
 		return ES_INVALID_PARAM;
 	}
-	frame_line_bytes = pix_frame_attr->x_resolution * (pix_frame_attr->bits_per_pix >> 3);
-	fb_line_bytes = public_attr->x_resolution * (public_attr->bits_per_pix >> 3);
+	frame_line_bytes = pix_frame_attr->x_resolution * (pix_frame_attr->pix_fmt_info.bits_per_pix >> 3);
+ 	fb_line_bytes = public_attr->x_resolution * (public_attr->pix_fmt_info.bits_per_pix >> 3);
 	flush_line_bytes = min(frame_line_bytes, fb_line_bytes);
-	flush_col_nr = min(pix_frame_attr->y_resolution, public_attr->y_resolution);
+	flush_line_nr = min(pix_frame_attr->y_resolution, public_attr->y_resolution);
 	fb_dst_addr = priv_attr->fbmem;
 	frame_src_addr = dframe->buf_start_addr;
-	for(i = 0; i < flush_col_nr; i++)
+	for(i = 0; i < flush_line_nr; i++)
 	{
 		memcpy(fb_dst_addr, frame_src_addr, flush_line_bytes);
 		fb_dst_addr += fb_line_bytes;
@@ -232,8 +233,8 @@ static es_error_t fb_open(const char *path, struct display_base *base)
 	
 	public_attr.x_resolution = fb_var_info.xres;
 	public_attr.y_resolution = fb_var_info.yres;
-	public_attr.bits_per_pix = fb_var_info.bits_per_pixel;
 	public_attr.pix_fmt = get_fb_pix_fmt(&fb_var_info);
+	es_get_pix_fmt_info(public_attr.pix_fmt , &public_attr.pix_fmt_info);
 
 	base->sub_class = ES_DISPLAY_CLASS_FB;
 	base->path_name = path;

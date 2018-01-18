@@ -29,7 +29,7 @@ extern "C"
 #include <es_list.h>
 #include <es_multimedia_format.h>
 
-typedef enum{
+typedef enum {
 	ES_UNKNOW_CHUNK = 0,
 
 	ES_ENCODE_AUDIO_CHUNK,
@@ -41,7 +41,7 @@ typedef enum{
 	ES_CHUNK_TYPE_NR,
 } es_chunk_type;
 
-typedef union es_chunk_attr{
+typedef union es_chunk_attr {
 	struct es_encode_audio_attr encode_audio;
 	struct es_encode_video_attr encode_video;
 	struct es_encode_image_attr encode_image;
@@ -55,19 +55,19 @@ typedef enum {
 } data_chunk_memory_method;
 
 /*only mem_method is DATA_CHUNK_MEM_METHOD_FILE_MMAP this attr is useful*/
-typedef struct data_chunk_mmap_attr{
+typedef struct data_chunk_mmap_attr {
 	char *mmap_file_path;
 	int fd;
 	unsigned long offset;
 } data_chunk_mmap_attr;
 
-typedef struct es_data_chunk{
+typedef struct es_data_chunk {
 	es_chunk_type type;
 	union es_chunk_attr chunk_attr;
 	data_chunk_memory_method mem_method;
 	struct data_chunk_mmap_attr mem_mmap_attr;
-	void *buf_start_addr;
 	unsigned long buf_size;
+	void *buf_start_addr;
 	struct es_list_head entry;
 } es_data_chunk;
 

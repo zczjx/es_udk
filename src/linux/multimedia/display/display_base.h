@@ -23,7 +23,7 @@
 #include <es_display.h>
 
 
-typedef struct display_base{
+typedef struct display_base {
 	es_display_class sub_class;
 	const char *path_name;
 	int fd;

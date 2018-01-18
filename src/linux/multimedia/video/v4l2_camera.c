@@ -181,21 +181,20 @@ static inline es_error_t set_v4l2_fmt_attr(int fd, struct _v4l2_priv_attr *priv_
 	fmt_dsc.index = 0;
 	fmt_dsc.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	public_attr->dat_fmt.pix_fmt = ES_PIX_FMT_UNKNOW;
-	public_attr->bits_per_pix = 0;
+	memset(&public_attr->pix_fmt_info, 0, sizeof(public_attr->pix_fmt_info));
 	while ((err = ioctl(fd, VIDIOC_ENUM_FMT, &fmt_dsc)) == 0) 
 	{
         if (is_support_pixel_fmt(fmt_dsc.pixelformat))
         {
 			public_attr->video_data_type = ES_VIDEO_DATA_TYPE_PIXEL_FRAME;
 			public_attr->dat_fmt.pix_fmt = v4l2_fmt_to_es_pix_fmt(fmt_dsc.pixelformat);
-			public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
+			es_get_pix_fmt_info(public_attr->dat_fmt.pix_fmt, &public_attr->pix_fmt_info);
             break;
         }
 		else if(is_support_encode_video_fmt(fmt_dsc.pixelformat))
 		{
 			public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
 			public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(fmt_dsc.pixelformat);
-			public_attr->bits_per_pix = 0;
             break;
 		}
 		fmt_dsc.index++;
@@ -359,6 +358,7 @@ static inline es_error_t set_v4l2_es_data_frame(struct es_data_frame *out_frame,
 		struct es_video_attr *public_attr)
 {
 	es_error_t ret;
+	int i = 0;
 		
 	if((NULL == out_frame) || (NULL == vbuf) || (NULL == public_attr))
 	{
@@ -373,11 +373,45 @@ static inline es_error_t set_v4l2_es_data_frame(struct es_data_frame *out_frame,
 			out_frame->type = ES_PIXEL_FRAME;
 			out_frame->mem_method = DATA_FRAME_MEM_METHOD_MALLOC;
 			out_frame->frame_attr.pix_frame.pix_fmt = public_attr->dat_fmt.pix_fmt;
-			out_frame->frame_attr.pix_frame.bits_per_pix = public_attr->bits_per_pix;
+			es_get_pix_fmt_info(public_attr->dat_fmt.pix_fmt, 
+				&out_frame->frame_attr.pix_frame.pix_fmt_info);
 			out_frame->frame_attr.pix_frame.x_resolution= public_attr->resolution.x;
 			out_frame->frame_attr.pix_frame.y_resolution= public_attr->resolution.y;
 			out_frame->buf_size = vbuf->buf_bytes;
-			memcpy(out_frame->buf_start_addr, vbuf->start_addr, out_frame->buf_size);
+			switch(out_frame->frame_attr.pix_frame.pix_fmt_info.store_fmt)
+			{
+				case ES_PIX_STORE_FMT_PACKED:
+					memcpy(out_frame->buf_start_addr, vbuf->start_addr, out_frame->buf_size);
+					for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+					{
+						out_frame->planes[i] = NULL;
+						out_frame->plane_bytes[i] = 0;
+					}
+
+					break;
+				case ES_PIX_STORE_FMT_PLANAR:
+					out_frame->planes[0] = out_frame->buf_start_addr;
+					out_frame->plane_bytes[0] = vbuf->plane_bytes[0];
+					memcpy(out_frame->planes[0], vbuf->planes[0], out_frame->plane_bytes[0]);		
+					for(i = 1; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+					{
+						if(0 == vbuf->plane_bytes[i])
+							break;
+
+						out_frame->plane_bytes[i] = vbuf->plane_bytes[i];
+						out_frame->planes[i] = out_frame->planes[i-1] 
+											+ out_frame->plane_bytes[i-1];
+						memcpy(out_frame->planes[i], vbuf->planes[i], out_frame->plane_bytes[i]);
+						
+					}
+					break;
+				case ES_PIX_STORE_FMT_SEMI_PLANAR:
+
+					break;
+				default:
+
+					break;
+			}
 			ret = ES_SUCCESS;
 		}
 		else
@@ -385,6 +419,12 @@ static inline es_error_t set_v4l2_es_data_frame(struct es_data_frame *out_frame,
 			out_frame->type = ES_UNKNOW_FRAME;
 			out_frame->buf_size = 0;
 			out_frame->buf_start_addr = NULL;
+			for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+			{
+				out_frame->planes[i] = NULL;
+				out_frame->plane_bytes[i] = 0;
+			}
+
 			ret = ES_FAIL;
 		}
 	
@@ -514,7 +554,7 @@ static es_error_t v4l2_cmr_open(const char *path, struct video_base *base)
     }
 	public_attr->property = ES_VIDEO_PROPERTY_UNKNOW;
 	public_attr->video_data_type = ES_VIDEO_DATA_TYPE_UNKNOW;
-	public_attr->bits_per_pix = 0;
+	memset(&public_attr->pix_fmt_info, 0, sizeof(public_attr->pix_fmt_info));
     if ((priv_attr->_v4l2_cap.capabilities & V4L2_CAP_VIDEO_CAPTURE))
     {
 		public_attr->property |= ES_VIDEO_PROPERTY_CAPTURE;
@@ -1157,13 +1197,13 @@ static es_error_t v4l2_cmr_get_attr(struct video_base *base, struct es_video_att
 	{
 		public_attr->video_data_type = ES_VIDEO_DATA_TYPE_PIXEL_FRAME;
 		public_attr->dat_fmt.pix_fmt = v4l2_fmt_to_es_pix_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);
-		public_attr->bits_per_pix = es_pix_fmt_bits_per_pixel(public_attr->dat_fmt.pix_fmt);
+		es_get_pix_fmt_info(public_attr->dat_fmt.pix_fmt, &public_attr->pix_fmt_info);
 	}
 	else if(is_support_encode_video_fmt(v4l2_pix_fmt.fmt.pix.pixelformat))
 	{
 		public_attr->video_data_type = ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK;
 		public_attr->dat_fmt.video_encode_fmt = v4l2_fmt_to_es_video_encode_fmt(v4l2_pix_fmt.fmt.pix.pixelformat);
-		public_attr->bits_per_pix = 0;
+		memset(&public_attr->pix_fmt_info, 0, sizeof(public_attr->pix_fmt_info));
 	}
 	streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     err = ioctl(base->fd, VIDIOC_G_PARM, &streamparm);

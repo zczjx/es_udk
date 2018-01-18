@@ -239,7 +239,7 @@ static es_error_t common_rgb_to_yuyv(struct es_data_frame *src_frame, struct es_
 static es_error_t common_yuyv_to_rgb(struct es_data_frame *src_frame, struct es_data_frame *dst_frame)
 {
 	es_error_t ret = ES_SUCCESS;
-	int err = 0; 
+	int i ,err = 0; 
 	static int buf_cnt = 0;
     const int src_w = src_frame->frame_attr.pix_frame.x_resolution;
 	const int src_h = src_frame->frame_attr.pix_frame.y_resolution; 
@@ -298,12 +298,12 @@ static es_error_t common_yuyv_to_rgb(struct es_data_frame *src_frame, struct es_
        	ret = ES_FAIL;
 		goto end; 
 	}  
-	sws_scale(convert_ctx, src_data, src_linesize, 0, src_h, dst_data, dst_linesize);  
-	// ES_PRINTF("Finish process 1 frame \n");
+	sws_scale(convert_ctx, src_data, src_linesize, 0, src_h, dst_data, dst_linesize); 
 
 	dst_frame->frame_attr.pix_frame.x_resolution = dst_w;
 	dst_frame->frame_attr.pix_frame.y_resolution = dst_h;
-	dst_frame->frame_attr.pix_frame.bits_per_pix = dst_bpp;
+	dst_frame->frame_attr.pix_frame.pix_fmt_info.bits_per_pix = dst_bpp;
+	dst_frame->frame_attr.pix_frame.pix_fmt_info.store_fmt = ES_PIX_STORE_FMT_PACKED;
 	int dst_buf_bytes = (dst_bpp >> 3) * dst_w * dst_h;
 	ret = es_data_frame_buf_alloc(dst_frame, src_frame->mem_method, dst_buf_bytes);
 	if(ES_SUCCESS != ret)
@@ -315,6 +315,11 @@ static es_error_t common_yuyv_to_rgb(struct es_data_frame *src_frame, struct es_
 	}
 	
 	memcpy(dst_frame->buf_start_addr, dst_data[0], dst_buf_bytes); 
+	for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+	{
+			dst_frame->planes[i] = NULL;
+			dst_frame->plane_bytes[i] = 0;
+	}
 
 end:
 	sws_freeContext(convert_ctx);

@@ -57,7 +57,7 @@ static void inline do_display_base_instantiate(struct display_base *instance,
 	instance->attr.pix_fmt = ES_PIX_FMT_UNKNOW;
 	instance->attr.x_resolution = 0;
 	instance->attr.y_resolution = 0;
-	instance->attr.bits_per_pix = 0;
+	memset(&instance->attr.pix_fmt_info, 0, sizeof(instance->attr.pix_fmt_info));
 	INIT_ES_LIST_HEAD(&instance->entry);
 	instance->priv = NULL;
 	instance->sub_class = der_class->sub_class;
@@ -157,7 +157,6 @@ es_error_t es_display_open(const char *path, es_display_class sub_class, es_disp
 	es_disp_hld es_hld = NULL;
 	struct display_base *pos_base = NULL;
 	struct display_base *instance = NULL;
-	int i = 0;
 	
 	if((NULL == path) || (NULL == d_hld))
 	{

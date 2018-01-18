@@ -4,4 +4,4 @@ obj-y += multimedia_format/
 obj-y += video/
 obj-y += display/
 obj-y += frame_convert/
-# obj-y += codec/
+obj-y += codec/

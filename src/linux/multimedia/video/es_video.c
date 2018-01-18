@@ -516,9 +516,7 @@ es_error_t es_video_sync_recv_encode_chunk(es_video_hld v_hld,
 	}
 	if(NULL != pvb->video_recv_encode_chunk)
 	{
-		ES_PRINTF("before pvb->video_recv_encode_chunk");
 		ret = pvb->video_recv_encode_chunk(pvb, vchunk);
-		ES_PRINTF("after pvb->video_recv_encode_chunk");
 	}
 	else
 	{

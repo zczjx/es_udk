@@ -29,7 +29,7 @@ extern "C"
 #include <es_list.h>
 #include <es_multimedia_format.h>
 
-typedef enum{
+typedef enum {
 	ES_UNKNOW_FRAME = 0,
 
 	ES_ENCODE_AUDIO_FRAME,
@@ -45,7 +45,7 @@ typedef enum{
 	ES_FRAME_TYPE_NR,
 } es_frame_type;
 
-typedef union es_frame_attr{
+typedef union es_frame_attr {
 	struct es_encode_audio_attr encode_audio;
 	struct es_pcm_sound_attr pcm_sound;
 	struct es_encode_video_attr encode_video;
@@ -61,19 +61,22 @@ typedef enum {
 } data_frame_memory_method;
 
 /*only mem_method is DATA_FRAME_MEM_METHOD_FILE_MMAP this attr is useful*/
-typedef struct data_frame_mmap_attr{
+typedef struct data_frame_mmap_attr {
 	char *mmap_file_path;
 	int fd;
 	unsigned long offset;
 } data_frame_mmap_attr;
 
-typedef struct es_data_frame{
+#define ES_DATA_FRAME_MAX_PLANE_NR 8
+typedef struct es_data_frame {
 	es_frame_type type;
 	union es_frame_attr frame_attr;
 	data_frame_memory_method mem_method;
 	struct data_frame_mmap_attr mem_mmap_attr;
 	void *buf_start_addr;
 	unsigned long buf_size;
+	void *planes[ES_DATA_FRAME_MAX_PLANE_NR];
+	unsigned long plane_bytes[ES_DATA_FRAME_MAX_PLANE_NR];
 	struct es_list_head entry;
 } es_data_frame;
 

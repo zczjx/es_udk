@@ -30,7 +30,7 @@ extern "C"
 
 typedef unsigned int es_multimedia_fmt_t;
 
-typedef enum{
+typedef enum {
 	ES_PIX_FMT_UNKNOW = 0,
 
 	ES_PIX_FMT_GRAY8,
@@ -42,11 +42,25 @@ typedef enum{
 	ES_PIX_FMT_BGRA32,
 	
 	ES_PIX_FMT_YUYV,
+	ES_PIX_FMT_YUVJ422P,
 	
 	ES_PIX_FMT_NR,
 } es_pix_fmt;
 
-typedef enum{
+typedef enum {
+	ES_PIX_STORE_FMT_UNKNOW = 0,
+	ES_PIX_STORE_FMT_PACKED,
+	ES_PIX_STORE_FMT_PLANAR,
+	ES_PIX_STORE_FMT_SEMI_PLANAR,
+} es_pix_store_fmt;
+
+typedef struct es_pix_fmt_info {
+	es_pix_store_fmt store_fmt;
+	unsigned long bits_per_pix;
+} es_pix_fmt_info;
+
+
+typedef enum {
 	ES_IMAGE_ENCODE_FMT_UNKNOW = 0,
 		
 	ES_IMAGE_ENCODE_FMT_JPEG,
@@ -55,7 +69,7 @@ typedef enum{
 	ES_IMAGE_ENCODE_FMT_NR,
 } es_image_encode_fmt;
 
-typedef enum{
+typedef enum {
 	ES_VIDEO_ENCODE_FMT_UNKNOW = 0,
 		
 	ES_VIDEO_ENCODE_FMT_MJPEG,
@@ -64,7 +78,7 @@ typedef enum{
 	ES_VIDEO_ENCODE_FMT_NR,
 } es_video_encode_fmt;
 
-typedef enum{
+typedef enum {
 	ES_AUDIO_ENCODE_FMT_UNKNOW = 0,
 		
 	ES_AUDIO_ENCODE_FMT_MP3,
@@ -77,7 +91,7 @@ typedef enum{
 
 
 
-typedef enum{
+typedef enum {
 	ES_AV_PKG_FMT_UNKNOW = 0,
 
 	ES_AV_PKG_FMT_AVI,
@@ -90,28 +104,28 @@ typedef enum{
 } es_av_pkg_fmt;
 
 
-typedef struct es_encode_audio_attr{
+typedef struct es_encode_audio_attr {
 	es_audio_encode_fmt encode_fmt;
 } es_encode_audio_attr;
 
-typedef struct es_pcm_sound_attr{
+typedef struct es_pcm_sound_attr {
 	unsigned long stub;
 } es_pcm_sound_attr;
 
-typedef struct es_encode_video_attr{
+typedef struct es_encode_video_attr {
 	es_video_encode_fmt encode_fmt;
 } es_encode_video_attr;
 
 
-typedef struct es_encode_image_attr{
+typedef struct es_encode_image_attr {
 	es_image_encode_fmt encode_fmt;
 } es_encode_image_attr;
 
-typedef struct es_pixel_frame_attr{
-	es_pix_fmt 			pix_fmt;
-	unsigned long 		x_resolution; 
-	unsigned long 		y_resolution; 
-	unsigned long 		bits_per_pix;
+typedef struct es_pixel_frame_attr {
+	es_pix_fmt 				pix_fmt;
+	struct es_pix_fmt_info 	pix_fmt_info;
+	unsigned long 			x_resolution; 
+	unsigned long 			y_resolution; 
 } es_pixel_frame_attr;
 
 extern es_multimedia_fmt_t es_pix_fmt_to_v4l2_fmt(es_pix_fmt fmt);
@@ -132,8 +146,8 @@ extern es_image_encode_fmt ffmpeg_fmt_to_es_image_encode_fmt(es_multimedia_fmt_t
 extern es_video_encode_fmt ffmpeg_fmt_to_es_video_encode_fmt(es_multimedia_fmt_t fmt);
 extern es_audio_encode_fmt ffmpeg_fmt_to_es_audio_encode_fmt(es_multimedia_fmt_t fmt);
 
-extern unsigned long es_pix_fmt_bits_per_pixel(es_pix_fmt fmt);
-extern unsigned long es_pix_fmt_bytes_per_pixel(es_pix_fmt fmt);
+extern es_error_t es_get_pix_fmt_info(es_pix_fmt fmt, struct es_pix_fmt_info *pinfo);
+
 #ifdef __cplusplus
 }
 #endif

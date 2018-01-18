@@ -26,9 +26,7 @@ ifneq ($(dep_files),)
   include $(dep_files)
 endif
 
-
 PHONY += $(subdir-y)
-
 
 __build : $(subdir-y) built-in.o
 

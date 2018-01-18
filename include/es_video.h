@@ -26,7 +26,7 @@
 
 typedef void * es_video_hld;
 
-typedef enum{
+typedef enum {
 	ES_VIDEO_CLASS_UNKNOW = 0,
 	ES_VIDEO_CLASS_CAMERA,
 } es_video_class;
@@ -50,12 +50,12 @@ typedef enum{
 #define ES_VIDEO_PROPERTY_MJPEG_ENCODER		0x00002000	/* Can encode MJPEG streams */
 
 
-typedef struct es_video_resolution{
+typedef struct es_video_resolution {
 	unsigned long x;
     unsigned long y;
 } es_video_resolution;
 
-typedef struct es_video_ctrl{
+typedef struct es_video_ctrl {
 	unsigned long ctrl_id; //ro
 	unsigned char name[32];	//ro
 	long minimum; //ro
@@ -67,23 +67,23 @@ typedef struct es_video_ctrl{
 } es_video_ctrl;
 
 
-typedef enum{
+typedef enum {
 	ES_VIDEO_DATA_TYPE_UNKNOW = 0,
 	ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK,
 	ES_VIDEO_DATA_TYPE_PIXEL_FRAME,
 } es_video_data_type;
 
-typedef union es_video_data_fmt{
+typedef union es_video_data_fmt {
 	es_pix_fmt pix_fmt; //rw
 	es_video_encode_fmt video_encode_fmt; //rw
 } es_video_data_fmt;
 
-typedef struct es_video_attr{
+typedef struct es_video_attr {
 	unsigned long property;  //ro
 	es_video_data_type video_data_type; //ro
 	union es_video_data_fmt dat_fmt;
 	struct es_video_resolution resolution; //rw
-	unsigned long bits_per_pix; //ro  
+	struct es_pix_fmt_info pix_fmt_info; //ro  
 	unsigned long fps; //rw  frames per second
 	struct es_list_head *p_ctrl_list_head; //ro
 } es_video_attr;

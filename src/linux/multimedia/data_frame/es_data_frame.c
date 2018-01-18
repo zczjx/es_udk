@@ -45,6 +45,7 @@
 struct es_data_frame * es_data_frame_create(void)
 {
 	struct es_data_frame *pframe = NULL;
+	int i = 0;
 
 	pframe = (struct es_data_frame *)malloc(sizeof(struct es_data_frame));
 	if(NULL != pframe)
@@ -55,6 +56,11 @@ struct es_data_frame * es_data_frame_create(void)
 		pframe->mem_mmap_attr.fd = -1;
 		pframe->buf_size = 0;
 		pframe->buf_start_addr = NULL;
+		for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+		{
+			pframe->planes[i] = NULL;
+			pframe->plane_bytes[i] = 0;
+		}
 		INIT_ES_LIST_HEAD(&pframe->entry);	
 	}
 	else
@@ -82,6 +88,8 @@ struct es_data_frame * es_data_frame_create(void)
 *******************************************************************************/
 void es_data_frame_destroy(struct es_data_frame *pframe)
 {
+	int i = 0;
+
 	if(NULL == pframe)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
@@ -96,6 +104,11 @@ void es_data_frame_destroy(struct es_data_frame *pframe)
 				munmap(pframe->buf_start_addr, pframe->buf_size);
 				pframe->buf_start_addr = NULL;
 				pframe->buf_size = 0;
+				for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+				{
+					pframe->planes[i] = NULL;
+					pframe->plane_bytes[i] = 0;
+				}
 			}
 			if(pframe->mem_mmap_attr.fd >= 0)
 			{
@@ -114,6 +127,11 @@ void es_data_frame_destroy(struct es_data_frame *pframe)
 				free(pframe->buf_start_addr);
 				pframe->buf_size = 0;
 				pframe->buf_start_addr = NULL;
+				for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+				{
+					pframe->planes[i] = NULL;
+					pframe->plane_bytes[i] = 0;
+				}
 			}
 			break;
 
@@ -203,7 +221,7 @@ es_error_t es_data_frame_buf_alloc(struct es_data_frame *pframe,
 			pframe->buf_start_addr = (unsigned char *) malloc(byte_len);
 			if(NULL != pframe->buf_start_addr)
 			{
-				pframe->mem_method = DATA_FRAME_MEM_METHOD_FILE_MMAP;
+				pframe->mem_method = DATA_FRAME_MEM_METHOD_MALLOC;
 				pframe->buf_size = byte_len;
 				ret = ES_SUCCESS;
 			}
@@ -236,6 +254,8 @@ es_error_t es_data_frame_buf_alloc(struct es_data_frame *pframe,
 *******************************************************************************/
 void es_data_frame_buf_free(struct es_data_frame *pframe)
 {
+	int i = 0;
+
 	if(NULL == pframe)
 	{
 		ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
@@ -251,6 +271,11 @@ void es_data_frame_buf_free(struct es_data_frame *pframe)
 				munmap(pframe->buf_start_addr, pframe->buf_size);
 				pframe->buf_start_addr = NULL;
 				pframe->buf_size = 0;
+				for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+				{
+					pframe->planes[i] = NULL;
+					pframe->plane_bytes[i] = 0;
+				}
 			}
 			if(pframe->mem_mmap_attr.fd >= 0)
 			{
@@ -270,6 +295,11 @@ void es_data_frame_buf_free(struct es_data_frame *pframe)
 				pframe->mem_method = DATA_FRAME_MEM_METHOD_UNKNOW;
 				pframe->buf_size = 0;
 				pframe->buf_start_addr = NULL;
+				for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+				{
+					pframe->planes[i] = NULL;
+					pframe->plane_bytes[i] = 0;
+				}
 			}
 			break;
 
@@ -296,6 +326,7 @@ es_error_t es_data_frame_buf_realloc(struct es_data_frame *pframe, unsigned long
 	es_error_t ret = ES_SUCCESS;
 	unsigned char *pre_mem = NULL;
 	unsigned long pre_buf_size = 0;
+	int i;
 
 	if(NULL == pframe)
 	{
@@ -320,8 +351,23 @@ es_error_t es_data_frame_buf_realloc(struct es_data_frame *pframe, unsigned long
 				pframe->buf_start_addr = mmap(0, buf_size, 
 										(PROT_READ | PROT_WRITE), MAP_SHARED, 
         			  					pframe->mem_mmap_attr.fd, 0);
-				if (MAP_FAILED == pframe->buf_start_addr) 
+				if (MAP_FAILED != pframe->buf_start_addr) 
             	{
+            		pframe->mem_method = DATA_FRAME_MEM_METHOD_FILE_MMAP;
+					pframe->mem_mmap_attr.offset = 0;
+					pframe->buf_size = buf_size;
+					for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+					{
+						pframe->planes[i] = NULL;
+						pframe->plane_bytes[i] = 0;
+					}
+					munmap(pre_mem, pre_buf_size);
+					pre_mem = NULL;
+					pre_buf_size = 0;
+					ret = ES_SUCCESS;
+        		}
+				else
+				{
 					pframe->buf_size = pre_buf_size;
 					pframe->buf_start_addr = pre_mem;
 					pre_mem = NULL;
@@ -329,15 +375,8 @@ es_error_t es_data_frame_buf_realloc(struct es_data_frame *pframe, unsigned long
 					ES_PRINTF("file: %s, line: %d\n", __FILE__, __LINE__);
 					ES_PRINTF("[%s] No mem when realloc frame!\n" , __FUNCTION__);
 					ret = ES_FAIL;
-        		}
-				pframe->mem_method = DATA_FRAME_MEM_METHOD_FILE_MMAP;
-				pframe->mem_mmap_attr.offset = 0;
-				pframe->buf_size = buf_size;
-				munmap(pre_mem, pre_buf_size);
-				pre_mem = NULL;
-				pre_buf_size = 0;
-				ret = ES_SUCCESS;
-			
+				}
+		
 			break;
 
 		case DATA_FRAME_MEM_METHOD_MALLOC:
@@ -350,6 +389,11 @@ es_error_t es_data_frame_buf_realloc(struct es_data_frame *pframe, unsigned long
 					free(pre_mem);
 					pre_mem = NULL;
 					pre_buf_size = 0;
+					for(i = 0; i < ES_DATA_FRAME_MAX_PLANE_NR; i++)
+					{
+						pframe->planes[i] = NULL;
+						pframe->plane_bytes[i] = 0;
+					}
 					ret = ES_SUCCESS;
 				}
 				else
@@ -377,3 +421,4 @@ es_error_t es_data_frame_buf_realloc(struct es_data_frame *pframe, unsigned long
 	
 	return ret;
 }
+
