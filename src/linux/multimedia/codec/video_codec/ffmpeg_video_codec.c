@@ -537,7 +537,7 @@ static es_error_t default_vdecode_func(struct codec_base *base,
 			vframe->frame_attr.pix_frame.y_resolution = codec_desc->frame->height;
 			frame_bytes = codec_desc->frame->width 
 						* codec_desc->frame->height 
-						* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 2);
+						* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 3);
 			ret = es_data_frame_buf_alloc(vframe, DATA_FRAME_MEM_METHOD_MALLOC, frame_bytes); 
 
 			switch(vframe->frame_attr.pix_frame.pix_fmt_info.store_fmt)
@@ -632,7 +632,7 @@ static es_error_t default_vdecode_func(struct codec_base *base,
 		vframe->frame_attr.pix_frame.y_resolution = codec_desc->frame->height;
 		frame_bytes = codec_desc->frame->width 
 					* codec_desc->frame->height 
-					* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 2);
+					* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 3);
 		ret = es_data_frame_buf_alloc(vframe, DATA_FRAME_MEM_METHOD_MALLOC, frame_bytes); 
 
 		switch(vframe->frame_attr.pix_frame.pix_fmt_info.store_fmt)
@@ -777,7 +777,7 @@ static es_error_t mjpeg_vdecode_func(struct codec_base *base,
 			vframe->frame_attr.pix_frame.y_resolution = codec_desc->frame->height;
 			frame_bytes = codec_desc->frame->width 
 						* codec_desc->frame->height 
-						* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 2);
+						* (vframe->frame_attr.pix_frame.pix_fmt_info.bits_per_pix >> 3);
 			ret = es_data_frame_buf_alloc(vframe, DATA_FRAME_MEM_METHOD_MALLOC, frame_bytes); 
 
 			switch(vframe->frame_attr.pix_frame.pix_fmt_info.store_fmt)
@@ -811,6 +811,7 @@ static es_error_t mjpeg_vdecode_func(struct codec_base *base,
 				case ES_PIX_STORE_FMT_SEMI_PLANAR:
 
 					break;
+					
 				default:
 
 					break;

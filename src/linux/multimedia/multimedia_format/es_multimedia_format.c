@@ -60,7 +60,7 @@ static struct es_pix_fmt_info pix_fmt_info_arr[] = {
 		.store_fmt = ES_PIX_STORE_FMT_PACKED,
 		.bits_per_pix = 16,
 	},
-	[ES_PIX_FMT_YUVJ422P] = {
+	[ES_PIX_FMT_YUV422P] = {
 		.store_fmt = ES_PIX_STORE_FMT_PLANAR,
 		.bits_per_pix = 16,
 	},
@@ -98,7 +98,7 @@ static enum AVPixelFormat es_pixel_fmt_to_ffmpeg_arr[] = {
 	[ES_PIX_FMT_BGRA32]	= AV_PIX_FMT_BGRA,
 	
 	[ES_PIX_FMT_YUYV] = AV_PIX_FMT_YUYV422,
-	[ES_PIX_FMT_YUVJ422P] = AV_PIX_FMT_YUVJ422P,
+	[ES_PIX_FMT_YUV422P] = AV_PIX_FMT_YUV422P,
 };
 
 static enum AVCodecID es_video_encode_fmt_to_ffmpeg_arr[] = {
@@ -416,7 +416,11 @@ es_pix_fmt ffmpeg_fmt_to_es_pix_fmt(es_multimedia_fmt_t fmt)
 			break;
 
 		case AV_PIX_FMT_YUVJ422P:
-			ret = ES_PIX_FMT_YUVJ422P;
+			ret = ES_PIX_FMT_YUV422P;
+			break;
+			
+		case AV_PIX_FMT_YUV422P:
+			ret = ES_PIX_FMT_YUV422P;
 			break;
 			
 		default:

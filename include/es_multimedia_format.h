@@ -42,7 +42,7 @@ typedef enum {
 	ES_PIX_FMT_BGRA32,
 	
 	ES_PIX_FMT_YUYV,
-	ES_PIX_FMT_YUVJ422P,
+	ES_PIX_FMT_YUV422P,
 	
 	ES_PIX_FMT_NR,
 } es_pix_fmt;

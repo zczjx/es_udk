@@ -158,21 +158,41 @@ int main(int argc, char *argv[])
 			case ES_VIDEO_DATA_TYPE_ENCODE_VIDEO_CHUNK:
 			{
 				struct es_data_frame *pix_frame_list = NULL;
-				int frame_count = 0;
+				int i, frame_count = 0;
 					
 				vchunk = es_data_chunk_create();
 				ret = es_video_sync_recv_encode_chunk(v_hld, vchunk);
 				check_ret(ret, "es_video_sync_recv_encode_chunk");
-				printf("vchunk->type: %d \n", vchunk->type);
-				printf("vchunk->chunk_attr.encode_video.encode_fmt: %d \n", vchunk->chunk_attr.encode_video.encode_fmt);
-				printf("vchunk->buf_size: %d \n", vchunk->buf_size);
 				es_codec_decode(codec_hld, vchunk, &pix_frame_list, &frame_count);
 				printf("decode frame_count: %d \n", frame_count);
-				pix_frame_list->frame_attr.pix_frame.pix_fmt_info.bits_per_pix  = 32;
-				pix_frame_list->frame_attr.pix_frame.pix_fmt_info.store_fmt  = ES_PIX_STORE_FMT_PACKED;
-				pix_frame_list->frame_attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
-				es_display_sync_flush(d_hld, pix_frame_list);
-				es_data_frame_destroy(pix_frame_list);
+				if(frame_count <= 0)
+					continue;
+			
+				if(pix_frame_list->frame_attr.pix_frame.pix_fmt != d_attr.pix_fmt)
+				{
+					struct es_data_frame *dframe = NULL;
+					dframe = es_convert_to_spec_frame_fmt(c_hld, pix_frame_list, d_attr.pix_fmt);
+					if(NULL != dframe)
+					{
+						ret = es_display_sync_flush(d_hld, dframe);
+						check_ret(ret, "es_display_sync_flush");
+						es_data_frame_destroy(dframe);
+						es_data_frame_destroy(pix_frame_list);
+					}
+					else
+					{
+						es_data_frame_destroy(pix_frame_list);
+					}
+
+				}
+				else
+				{
+					pix_frame_list->frame_attr.pix_frame.pix_fmt_info.store_fmt = ES_PIX_STORE_FMT_PACKED;
+					pix_frame_list->frame_attr.pix_frame.pix_fmt_info.bits_per_pix = 32;
+					pix_frame_list->frame_attr.pix_frame.pix_fmt = ES_PIX_FMT_BGRA32;
+					es_display_sync_flush(d_hld, pix_frame_list);
+					es_data_frame_destroy(pix_frame_list);
+				}
 				pix_frame_list = NULL;
 			
 				break;

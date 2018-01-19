@@ -7,7 +7,7 @@
 ES_UDK_VERSION = 
 
 ES_UDK_SITE_METHOD = git2
-ES_UDK_SITE = git@192.168.1.106:git_repo/es_udk.git
+ES_UDK_SITE = git@192.168.2.106:git_repo/es_udk.git
 ES_UDK_SOURCE = ES_UDK-$(ES_UDK_VERSION).tar.gz
 ES_UDK_ALWAYS_BUILD = YES
 ES_UDK_INSTALL_STAGING = YES
@@ -19,7 +19,7 @@ ES_UDK_OUT_DLIB = libes_udk.so
 ES_UDK_TEST_CASE_DIR = test_case/linux/bin
 
 ES_UDK_DEPENDENCIES += ffmpeg
-ES_UDK_LDFLAGS += -lswscale -lavutil  
+ES_UDK_LDFLAGS += -lswscale -lavutil -lavcodec
 # ES_UDK_CFLAGS +=  -I $(STAGING_DIR)/usr/include/libswscale
 # ES_UDK_CFLAGS +=  -I $(STAGING_DIR)/usr/include/libavutil
 
