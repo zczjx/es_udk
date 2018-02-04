@@ -9,8 +9,9 @@ layer, use the high level abstruct API and class and dont't care the platform
 differences.
 
 ### how to build es_udk
-    I prefer to use buildroot to build my source code,
+
+I prefer to use *buildroot* to build my source code,
 in buildroot/ dir is the es_udk compile .mk script
 
-    If you like it ,you can refer the buildroot/ *.mk to build
+If you like it ,you can refer the buildroot/ \*.mk to build
 es_udk, and I will update the make script as soon as possible
