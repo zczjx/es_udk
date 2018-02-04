@@ -19,4 +19,4 @@ es_udk, and I will update the make script as soon as possible
 ### buildroot user guide
 
 here is the website of
-[buildroot manual](https://buildroot.org/downloads/manual/manual.html)
+[buildroot manual](https://buildroot.org/downloads/manual/manual.html "buildroot official")
