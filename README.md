@@ -24,7 +24,7 @@ here is the website of
 
 ## sample code
 
-    #include<stdio.h>
+`   #include<stdio.h>
 
     int main(int argc, char *argv[])
     {
@@ -32,6 +32,6 @@ here is the website of
         printf("hello world! \n");
         return 0;
     }
-
+`
 
 
