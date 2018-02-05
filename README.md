@@ -2,9 +2,8 @@
 
 es_udk readme
 =========================
-
 es_udk is short for Embeded System Unified Development Kit
--------------------------------------------------------------
+-------------------------
 
 ##introduction
 
@@ -26,4 +25,3 @@ es_udk, and I will update the make script as soon as possible
 Here is the website of
 [buildroot manual](https://buildroot.org/downloads/manual/manual.html "buildroot official")
 
-****************************************
