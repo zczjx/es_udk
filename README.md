@@ -7,14 +7,12 @@ es_udk is short for Embeded System Unified Development Kit
 -------------------------------------------------------------
 
 ##introduction
-
-es_udk unify mutiple Embeded operating system base opensource package and system
+Es_udk is unify mutiple Embeded operating system base opensource package and system
 API, the Programmer can use it to construct your application in a high abstract
 layer, use the high level abstruct API and class and dont't care the platform 
 differences.
 
 ##how to build es_udk
-
 - I prefer to use *buildroot* to build my source code,
 in buildroot/ dir is the es_udk compile **\*.mk script**
 
@@ -22,7 +20,6 @@ in buildroot/ dir is the es_udk compile **\*.mk script**
 es_udk, and I will update the make script as soon as possible
 
 ##buildroot user guide
-
 Here is the website of
 [buildroot manual](https://buildroot.org/downloads/manual/manual.html "buildroot official")
 
