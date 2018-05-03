@@ -2,7 +2,7 @@
 
 es_udk readme
 =========================
-es_udk is short for Embeded System Unified Development Kit
+es_udk is short for Embedded System Unified Development Kit
 -------------------------
 
 # introduction #
