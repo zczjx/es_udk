@@ -25,6 +25,3 @@ es_udk, and I will update the make script as soon as possible
 Here is the website of
 [buildroot manual](https://buildroot.org/downloads/manual/manual.html "buildroot official")
 
------------------------------------------------------------------
-![logo](https://github.com/zczjx/es_udk/blob/master/logo.jpg)
-
