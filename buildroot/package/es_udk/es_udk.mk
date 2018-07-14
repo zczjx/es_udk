@@ -4,11 +4,11 @@
 #
 ################################################################################
 
-ES_UDK_VERSION = 
+ES_UDK_VERSION = master
 
 ES_UDK_SITE_METHOD = git2
-ES_UDK_SITE = git@192.168.2.106:git_repo/es_udk.git
-ES_UDK_SOURCE = ES_UDK-$(ES_UDK_VERSION).tar.gz
+ES_UDK_SITE = git@github.com:zczjx/es_udk.git
+# ES_UDK_SOURCE = es_udk-$(ES_UDK_VERSION).tar.gz
 ES_UDK_ALWAYS_BUILD = YES
 ES_UDK_INSTALL_STAGING = YES
 ES_UDK_DEPENDENCIES += es_common
